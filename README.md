@@ -67,10 +67,12 @@ The adapter checks for a ChatGPT account **before starting any inference turn** 
 1. **Bring a question.** Choose paper study, concept study, investigation, or original work. Set an approximate 1–10 hour budget. Attach a PDF, Markdown/text document, or public source URL if you have one. If you want topic suggestions, ask for them in the session objective; you can also start any saved recommendation.
 2. **Inspect the brief.** Codex researches and proposes objectives, prerequisites, activities, and explicit assessment criteria. Prerequisites are advice. Edit activity titles and purposes when useful. Starting a new session pauses the previous one; its work is preserved.
 3. **Approach one activity.** Materials are generated only when you request them. The instructor sees the actual source pages, previous submissions, questions, annotations, and experimental records.
-4. **Read and work.** Use page-linked reading assignments, the original PDF, text selection and annotation, a Markdown/LaTeX editor with mathematical preview, a notebook, and a contextual thinking partner. Retrieval activities offer an honor-based closed-book workspace. Hints are progressive; written work remains yours.
+4. **Read and work.** Read source excerpts directly inside an activity, with AI paragraph formatting checked against the original page text. Use the original PDF reader for highlighting and sticky notes, including editing, deletion, page navigation, and zoom. Write in a document-style editor with a formatting toolbar, live word counter, and editable equations; Markdown remains the storage format. Retrieval activities offer an honor-based closed-book workspace. Hints are progressive; written work remains yours.
 5. **Investigate when it helps.** A generated laboratory provides an executable apparatus, variables, controls, assumptions, and a procedure. State a hypothesis and prediction, choose controls and seed, and collect one trial at a time. Measurements, code, settings, Python version, console output, and output artifacts survive restarts. Compare trials, plot numeric columns, export CSV, and complete your own Python analysis.
 6. **Submit and defend.** Each submission is an immutable revision of your response and code. Critiques use explicit criteria and preserve their evidence. A simulated panel asks questions from different perspectives. Write a defense or revision and submit it again. Attach reports and code; readable PDF/text reports also become inspectable sources.
 7. **Conclude with evidence.** Margin distinguishes demonstrated work, uncertainty, and untested retention. It saves exactly six varied future-session recommendations. Your interests and long-term goals affect these recommendations, never the content of your chosen session.
+
+The workspace uses draggable tabs across the top, including **AI chat**. Drag a tab to an edge to split the workspace, or use **Split right** / **Split below**. Resize panes by dragging their dividers, close/reopen tabs, or reset the layout. Your layout is saved per session and restored on restart.
 
 There are no streaks, badges, numerical mastery scores, or mandatory curriculum gates. Knowledge judgments can be challenged. Saved recommendations stay available even when you choose something else.
 
@@ -104,17 +106,17 @@ Configuration uses environment variables:
 
 ## Capability boundaries
 
-| Capability                                  | Implementation and limit                                                                                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI instruction, critique, defense, planning | Official local Codex app-server, ChatGPT-authenticated; structured outputs validated with Zod                                                           |
-| Research                                    | Codex web search when enabled and available under account policy; public URL ingestion with validated/pinned DNS and redirect checks                    |
-| Papers                                      | Sandboxed local Poppler extraction, physical page references, retained originals; 20 MB/source, first 400 pages, 2 million extracted characters         |
-| Quotations                                  | Exact normalized substring checks before publication; brief remote excerpts capped at 25 words per source per response; no invented quotations accepted |
-| Mathematical work                           | Locally served KaTeX, Markdown/LaTeX authoring, CodeMirror, progressive hints                                                                           |
-| Computation                                 | Linux bubblewrap + standard-library Python; no home, credentials, privileged operations, or network access                                              |
-| Lab outputs                                 | Synthetic/simulated data explicitly labeled; they do not independently validate the simulator's assumptions                                             |
-| Projects                                    | Editable Python, executed runs, attached files, reports, immutable submissions and interactive simulated defenses                                       |
-| Images and lectures                         | Links to external originals and generated numeric plots; no assumed hosted image-generation, video-transcription or Code Interpreter access             |
+| Capability                                  | Implementation and limit                                                                                                                                                                                                    |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI instruction, critique, defense, planning | Official local Codex app-server, ChatGPT-authenticated; structured outputs validated with Zod                                                                                                                               |
+| Research                                    | Codex web search when enabled and available under account policy; public URL ingestion with validated/pinned DNS and redirect checks                                                                                        |
+| Papers                                      | PDF.js page rendering with anchored highlights/sticky notes; sandboxed Poppler extraction, source-checked AI excerpt formatting and physical page references; 20 MB/source, first 400 pages, 2 million extracted characters |
+| Quotations                                  | Exact normalized substring checks before publication; brief remote excerpts capped at 25 words per source per response; no invented quotations accepted                                                                     |
+| Mathematical work                           | Document-style rich text (Tiptap), live word count, editable KaTeX equations, Markdown storage; CodeMirror for Python                                                                                                       |
+| Computation                                 | Linux bubblewrap + standard-library Python; no home, credentials, privileged operations, or network access                                                                                                                  |
+| Lab outputs                                 | Synthetic/simulated data explicitly labeled; they do not independently validate the simulator's assumptions                                                                                                                 |
+| Projects                                    | Editable Python, executed runs, attached files, reports, immutable submissions and interactive simulated defenses                                                                                                           |
+| Images and lectures                         | Links to external originals and generated numeric plots; no assumed hosted image-generation, video-transcription or Code Interpreter access                                                                                 |
 
 Python runs have 8 CPU seconds, 15 wall seconds, 768 MB address space, bounded output, file limits, a monitored working-directory budget, and a 32 MB temporary filesystem. Two computations can run at once. Generated symlinks are not followed when collecting artifacts. A technical startup check validates each generated apparatus; its measurements are deliberately excluded from the learner's ledger. Failed generated apparatuses are not published.
 
@@ -131,6 +133,7 @@ npm run build         # type check + production frontend
 npm run test:browser  # actual Chromium -> API -> SQLite -> rendered response
 npm run test:live     # opt-in paper + lab evaluation; consumes subscription usage
 npm run test:live:project # opt-in code review, defense, native thread resume + lab check
+npm run test:live:excerpts # opt-in actual LLM typesetting and verbatim source validation
 npm run format:check  # formatting
 ```
 

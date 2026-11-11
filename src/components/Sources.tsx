@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import {
   Upload,
   Link,
@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import type { SessionDetail, Source } from '../../shared/schema';
 import { api, upload } from '../api';
-import { Empty } from './Primitives';
+import { Empty, Loading } from './Primitives';
+const PdfReader = lazy(() => import('./PdfReader'));
 export default function Sources({
   detail,
   onUpdate,
@@ -160,7 +161,20 @@ export default function Sources({
           <Plus size={15} />
         </button>
       </form>
-      {source ? (
+      {source?.mediaType === 'application/pdf' ? (
+        <Suspense fallback={<Loading text="Opening the PDF reader…" />}>
+          <PdfReader
+            key={source.id}
+            source={source}
+            page={page}
+            setPage={setPage}
+            annotations={detail.annotations}
+            onUpdate={onUpdate}
+            report={report}
+            onAsk={onAsk}
+          />
+        </Suspense>
+      ) : source ? (
         <>
           <div className="source-meta">
             <div>

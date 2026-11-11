@@ -141,7 +141,9 @@ export class Store {
   }
   updateSession(
     sessionId: string,
-    patch: Partial<Pick<Session, 'notes' | 'currentActivity' | 'title' | 'readerState'>>,
+    patch: Partial<
+      Pick<Session, 'notes' | 'currentActivity' | 'title' | 'readerState' | 'workspaceLayout'>
+    >,
     revision?: number,
   ) {
     const s = this.session(sessionId);

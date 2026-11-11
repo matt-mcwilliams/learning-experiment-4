@@ -234,7 +234,7 @@ export default function App() {
         </div>
       </aside>
       <main className="main-shell">
-        <header className="topbar">
+        <header className={'topbar' + (page === 'workspace' && detail ? ' workspace-topbar' : '')}>
           <div>
             <button
               className="icon-button sidebar-toggle"

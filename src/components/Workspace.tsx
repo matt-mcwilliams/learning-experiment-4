@@ -14,7 +14,6 @@ import {
   LoaderCircle,
   MessageSquare,
   MoreHorizontal,
-  PanelRightClose,
   Play,
   Plus,
   Send,
@@ -40,11 +39,14 @@ import type { AgentStatus, Bootstrap } from '../App';
 import { api, upload } from '../api';
 import { Markdown, Empty, Loading, Modal, date } from './Primitives';
 import { useDraft } from './useDraft';
+import DockWorkspace, { type WorkspaceTab, type DockHandle } from './DockWorkspace';
+import ReadingExcerpts from './ReadingExcerpts';
 const Editor = lazy(() => import('./Editor'));
+const DocumentEditor = lazy(() => import('./DocumentEditor'));
 const Sources = lazy(() => import('./Sources'));
 const Laboratory = lazy(() => import('./Laboratory'));
 const Output = lazy(() => import('./Laboratory').then((m) => ({ default: m.RunOutput })));
-type Tab = 'brief' | 'read' | 'write' | 'lab' | 'review' | 'sources' | 'notes' | 'files';
+type Tab = WorkspaceTab;
 export default function Workspace({
   detail,
   setDetail,
@@ -62,10 +64,8 @@ export default function Workspace({
   agent: AgentStatus | null;
   onNew: () => void;
 }) {
-  const tabKey = 'margin-tab-v1-' + detail.id;
-  const [tab, setTabState] = useState<Tab>(() => (localStorage.getItem(tabKey) as Tab) || 'brief'),
-    [tutor, setTutor] = useState(false),
-    [ask, setAsk] = useState(''),
+  const dockHandle = useRef<DockHandle | null>(null);
+  const [ask, setAsk] = useState(''),
     [sourceRef, setSourceRef] = useState<{ sourceId: string; page: number } | null>(null),
     [edit, setEdit] = useState(false),
     [finish, setFinish] = useState(false),
@@ -77,10 +77,7 @@ export default function Workspace({
     detail.activities.find((a) => a.id === detail.currentActivity) || detail.activities[0];
   const activeJob = detail.jobs.find((j) => j.status === 'running');
   const lastJob = detail.jobs.at(-1);
-  const setTab = (value: Tab) => {
-    setTabState(value);
-    localStorage.setItem(tabKey, value);
-  };
+  const setTab = (value: Tab) => dockHandle.current?.open(value);
   const reload = useCallback(async () => {
     const d = await api<SessionDetail>('/sessions/' + detail.id);
     setDetail(d);
@@ -123,400 +120,239 @@ export default function Workspace({
   };
   const question = (text: string) => {
     setAsk(text);
-    setTutor(true);
+    setTab('tutor');
   };
   const changeActivity = async (id: string) => {
     await act('/sessions/' + detail.id, { currentActivity: id }, 'PATCH');
     setTab('read');
   };
   const locked = !!activeJob || working;
-  return (
-    <div className={'workspace ' + (tutor ? 'with-tutor' : '')}>
-      <div className="work-main">
-        <div className="session-heading">
-          <div className="session-kicker">
-            <span className="eyebrow">
-              {detail.mode === 'paper'
-                ? 'PAPER STUDY'
-                : detail.mode === 'concept'
-                  ? 'CONCEPT STUDY'
-                  : detail.mode === 'project'
-                    ? 'ORIGINAL WORK'
-                    : 'INVESTIGATION'}
-            </span>
-            <span>·</span>
-            <span>{detail.hours} hours, at your pace</span>
-            <span className={'status-label ' + detail.status}>{detail.status}</span>
-          </div>
-          <div className="session-title-row">
-            <h1>{detail.title}</h1>
-            <button
-              className={'tutor-button ' + (tutor ? 'active' : '')}
-              disabled={closed}
-              onClick={() => setTutor(!tutor)}
-            >
-              <Sparkles size={16} />
-              Thinking partner
-            </button>
-          </div>
-          <p className="session-objective">{detail.objective}</p>
-        </div>
-        <div className="workspace-tabs" role="tablist" aria-label="Workspace views">
-          {(
-            [
-              { key: 'brief', label: 'Session brief', icon: CompassIcon },
-              ...(activity
-                ? [
-                    { key: 'read', label: 'Read', icon: BookOpen },
-                    { key: 'write', label: 'Work', icon: Pencil },
-                    ...(activity.kind === 'lab'
-                      ? [{ key: 'lab', label: 'Laboratory', icon: FlaskConical }]
-                      : []),
-                    { key: 'review', label: 'Review', icon: CheckCheck },
-                  ]
-                : []),
-              { key: 'sources', label: 'Sources', icon: FileText },
-              { key: 'notes', label: 'Notebook', icon: Pencil },
-              { key: 'files', label: 'Files', icon: Code2 },
-            ] as { key: Tab; label: string; icon: typeof BookOpen }[]
-          )
-            .filter((t) => !closed || !['read', 'sources', 'notes', 'files'].includes(t.key))
-            .map(({ key, label, icon: Icon }) => (
-              <button
-                role="tab"
-                aria-selected={tab === key}
-                key={key}
-                className={tab === key ? 'active' : ''}
-                onClick={() => setTab(key)}
-              >
-                <Icon size={15} />
-                {label}
-              </button>
-            ))}
-        </div>
-        {activeJob && (
-          <div className="job-progress" role="status">
-            <LoaderCircle size={17} className="spin" />
-            <div>
-              <strong>{activeJob.phase}</strong>
-              <span>
-                {activeJob.kind === 'plan'
-                  ? 'Researching and structuring this session'
-                  : activeJob.kind === 'assess'
-                    ? 'Examining your reasoning against the criteria'
-                    : activeJob.kind === 'complete'
-                      ? 'Synthesizing evidence and six next directions'
-                      : 'Your saved work stays available while Codex works'}
-              </span>
-            </div>
-            <button
-              className="text-button"
-              onClick={() => void act('/jobs/' + activeJob.id + '/cancel', {})}
-            >
-              Cancel
-              <X size={14} />
-            </button>
-          </div>
-        )}
-        {lastJob?.status === 'failed' && (
-          <div className="job-error" role="alert">
-            <p>
-              <strong>The task needs attention.</strong> {lastJob.error}
-            </p>
-            <button
-              className="secondary"
-              disabled={locked}
-              onClick={() => void act('/jobs/' + lastJob.id + '/retry', {})}
-            >
-              <RotateCcw size={14} />
-              Retry {lastJob.kind === 'material' ? 'preparation' : lastJob.kind}
-            </button>
-          </div>
-        )}
-        {detail.status === 'paused' && (
-          <div className="paused-notice">
-            This session is paused. Its work is still available.
-            <button
-              className="text-button"
-              onClick={() => void act('/sessions/' + detail.id + '/resume', {})}
-            >
-              Make this my current session
-              <ArrowRight size={15} />
-            </button>
-          </div>
-        )}
-        <div className="workspace-content">
-          <Suspense fallback={<Loading />}>
-            {tab === 'brief' && (
-              <>
-                {detail.plan ? (
-                  <>
-                    <div className="brief-intro">
-                      <span className="eyebrow">THE QUESTION & THE ROUTE</span>
-                      <Markdown>{detail.plan.introduction}</Markdown>
+  const allowed: Tab[] = (
+    [
+      'brief',
+      ...(activity ? ['read', 'write', ...(activity.kind === 'lab' ? ['lab'] : []), 'review'] : []),
+      'sources',
+      'notes',
+      'files',
+      'tutor',
+    ] as Tab[]
+  ).filter((t) => !closed || !['brief', 'read', 'sources', 'notes', 'files', 'tutor'].includes(t));
+  const renderView = (tab: Tab) => (
+    <Suspense fallback={<Loading />}>
+      {tab === 'brief' && (
+        <>
+          {detail.plan ? (
+            <>
+              <div className="brief-intro">
+                <span className="eyebrow">THE QUESTION & THE ROUTE</span>
+                <Markdown>{detail.plan.introduction}</Markdown>
+              </div>
+              <div className="objectives">
+                <h2>What you should be able to defend</h2>
+                {detail.plan.objectives.map((o, i) => (
+                  <p key={o}>
+                    <span>{String(i + 1).padStart(2, '0')}</span>
+                    {o}
+                  </p>
+                ))}
+              </div>
+              {!!detail.plan.prerequisites.length && (
+                <details className="prerequisites">
+                  <summary>
+                    Useful foundations <span>Advice, never a gate</span>
+                  </summary>
+                  {detail.plan.prerequisites.map((p) => (
+                    <div key={p.concept}>
+                      <h4>{p.concept}</h4>
+                      <p>{p.why}</p>
+                      <p className="muted">Try this: {p.check}</p>
                     </div>
-                    <div className="objectives">
-                      <h2>What you should be able to defend</h2>
-                      {detail.plan.objectives.map((o, i) => (
-                        <p key={o}>
-                          <span>{String(i + 1).padStart(2, '0')}</span>
-                          {o}
-                        </p>
-                      ))}
-                    </div>
-                    {!!detail.plan.prerequisites.length && (
-                      <details className="prerequisites">
-                        <summary>
-                          Useful foundations <span>Advice, never a gate</span>
-                        </summary>
-                        {detail.plan.prerequisites.map((p) => (
-                          <div key={p.concept}>
-                            <h4>{p.concept}</h4>
-                            <p>{p.why}</p>
-                            <p className="muted">Try this: {p.check}</p>
-                          </div>
-                        ))}
-                      </details>
-                    )}
-                    <div className="route-heading">
-                      <h2>A route through the ideas</h2>
-                      <span>Materials are prepared as you approach them.</span>
-                    </div>
-                    <div className="route-list">
-                      {detail.activities.map((a, i) => (
-                        <button
-                          className="route-card"
-                          key={a.id}
-                          onClick={() => void changeActivity(a.id)}
-                        >
-                          <span className={'route-number ' + (a.state === 'done' ? 'done' : '')}>
-                            {a.state === 'done' ? (
-                              <Check size={18} />
-                            ) : (
-                              String(i + 1).padStart(2, '0')
-                            )}
-                          </span>
-                          <div>
-                            <span className="eyebrow">
-                              {a.kind} · {a.minutes} MIN{a.closedBook ? ' · CLOSED BOOK' : ''}
-                            </span>
-                            <h3>{a.title}</h3>
-                            <p>{a.purpose}</p>
-                          </div>
-                          <ArrowUpRight size={19} />
-                        </button>
-                      ))}
-                    </div>
-                    {detail.completion ? (
-                      <SessionSynthesis completion={detail.completion} onNew={onNew} />
-                    ) : (
-                      <div className="completion-invite">
-                        <span>When you can defend what you've learned.</span>
-                        <button
-                          disabled={locked}
-                          className="secondary"
-                          onClick={() => setFinish(true)}
-                        >
-                          Conclude this session
-                          <ArrowRight size={15} />
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <Empty
-                    eyebrow="THE BEGINNING"
-                    title={
-                      activeJob
-                        ? 'A thoughtful plan takes a moment.'
-                        : 'Start with a coherent question.'
-                    }
-                    action={
-                      !activeJob ? (
-                        <button
-                          className="primary"
-                          disabled={locked}
-                          onClick={() => void task('plan')}
-                        >
-                          Prepare session plan
-                          <Sparkles size={16} />
-                        </button>
-                      ) : undefined
-                    }
+                  ))}
+                </details>
+              )}
+              <div className="route-heading">
+                <h2>A route through the ideas</h2>
+                <span>Materials are prepared as you approach them.</span>
+              </div>
+              <div className="route-list">
+                {detail.activities.map((a, i) => (
+                  <button
+                    className="route-card"
+                    key={a.id}
+                    onClick={() => void changeActivity(a.id)}
                   >
-                    {activeJob
-                      ? 'Codex is inspecting available sources and arranging the concepts, activities, and evidence this session will need.'
-                      : 'Attach a source in Sources if you have one, then ask Codex to prepare a plan. No lessons are generated until you need them.'}
-                  </Empty>
-                )}
-              </>
-            )}
-            {activity && tab === 'read' && !closed && (
-              <>
-                <ActivityHeading
-                  activity={activity}
-                  index={activity.position + 1}
-                  onEdit={() => setEdit(true)}
-                />
-                {activity.material ? (
-                  <>
-                    <Markdown>{activity.material.body}</Markdown>
-                    {activity.material.references.length > 0 && (
-                      <div className="reading-assignments">
-                        <h3>Read at the source</h3>
-                        {activity.material.references.map((ref, i) => {
-                          const s = detail.sources.find((s) => s.id === ref.sourceId);
-                          return (
-                            <button
-                              key={i}
-                              className="reading-ref"
-                              onClick={() => {
-                                setSourceRef(ref);
-                                setTab('sources');
-                              }}
-                            >
-                              <span className="ref-number">{i + 1}</span>
-                              <div>
-                                <strong>
-                                  {s?.title ?? 'Source'} <span>p. {ref.page}</span>
-                                </strong>
-                                <p>{ref.purpose}</p>
-                                {ref.quote && <blockquote>“{ref.quote}”</blockquote>}
-                              </div>
-                              <ArrowUpRight size={16} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="reading-next">
-                      <span>Understanding has to survive use.</span>
-                      <button
-                        className="primary"
-                        onClick={() => setTab(activity.kind === 'lab' ? 'lab' : 'write')}
-                      >
-                        {activity.kind === 'lab' ? 'Open laboratory' : 'Work through the question'}
-                        <ArrowRight size={16} />
-                      </button>
+                    <span className={'route-number ' + (a.state === 'done' ? 'done' : '')}>
+                      {a.state === 'done' ? <Check size={18} /> : String(i + 1).padStart(2, '0')}
+                    </span>
+                    <div>
+                      <span className="eyebrow">
+                        {a.kind} · {a.minutes} MIN{a.closedBook ? ' · CLOSED BOOK' : ''}
+                      </span>
+                      <h3>{a.title}</h3>
+                      <p>{a.purpose}</p>
                     </div>
-                  </>
-                ) : (
-                  <PrepareActivity
-                    activity={activity}
-                    disabled={locked}
-                    onPrepare={() => void task('material')}
-                  />
-                )}
-              </>
-            )}
-            {activity && tab === 'write' && (
-              <>
-                <ActivityHeading
-                  activity={activity}
-                  index={activity.position + 1}
-                  onEdit={() => setEdit(true)}
-                />
-                {activity.material ? (
-                  <ActivityWork
-                    key={activity.id}
-                    activity={activity}
-                    detail={detail}
-                    onUpdate={reload}
-                    report={report}
-                    task={task}
-                    busy={locked}
-                    closed={closed}
-                    onClosed={(value) => {
-                      setClosed(value);
-                      if (value) setTutor(false);
-                    }}
-                    sandbox={sandbox}
-                  />
-                ) : (
-                  <PrepareActivity
-                    activity={activity}
-                    disabled={locked}
-                    onPrepare={() => void task('material')}
-                  />
-                )}
-              </>
-            )}
-            {activity && tab === 'lab' && (
-              <>
-                {activity.material?.lab ? (
-                  <Laboratory
-                    key={activity.id}
-                    activity={activity}
-                    detail={detail}
-                    onUpdate={async () => {
-                      await reload();
-                    }}
-                    report={report}
-                    sandbox={sandbox}
-                  />
-                ) : (
-                  <PrepareActivity
-                    activity={activity}
-                    disabled={locked}
-                    onPrepare={() => void task('material')}
-                  />
-                )}
-              </>
-            )}
-            {activity && tab === 'review' && (
-              <Review
+                    <ArrowUpRight size={19} />
+                  </button>
+                ))}
+              </div>
+              {detail.completion ? (
+                <SessionSynthesis completion={detail.completion} onNew={onNew} />
+              ) : (
+                <div className="completion-invite">
+                  <span>When you can defend what you've learned.</span>
+                  <button disabled={locked} className="secondary" onClick={() => setFinish(true)}>
+                    Conclude this session
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <Empty
+              eyebrow="THE BEGINNING"
+              title={
+                activeJob ? 'A thoughtful plan takes a moment.' : 'Start with a coherent question.'
+              }
+              action={
+                !activeJob ? (
+                  <button className="primary" disabled={locked} onClick={() => void task('plan')}>
+                    Prepare session plan
+                    <Sparkles size={16} />
+                  </button>
+                ) : undefined
+              }
+            >
+              {activeJob
+                ? 'Codex is inspecting available sources and arranging the concepts, activities, and evidence this session will need.'
+                : 'Attach a source in Sources if you have one, then ask Codex to prepare a plan. No lessons are generated until you need them.'}
+            </Empty>
+          )}
+        </>
+      )}
+      {activity && tab === 'read' && !closed && (
+        <>
+          <ActivityHeading
+            activity={activity}
+            index={activity.position + 1}
+            onEdit={() => setEdit(true)}
+          />
+          {activity.material ? (
+            <>
+              <Markdown>{activity.material.body}</Markdown>
+              <ReadingExcerpts
                 activity={activity}
                 detail={detail}
                 busy={locked}
-                task={task}
-                onWrite={() => setTab('write')}
-                onAsk={question}
-              />
-            )}
-            {tab === 'sources' && !closed && (
-              <Sources
-                key={sourceRef ? sourceRef.sourceId + '-' + sourceRef.page : 'reader'}
-                detail={detail}
-                onUpdate={async () => {
-                  await reload();
+                onFormat={() => void task('excerpts')}
+                onOpen={(ref) => {
+                  setSourceRef(ref);
+                  setTab('sources');
                 }}
-                report={report}
-                onAsk={question}
-                initialRef={sourceRef}
               />
-            )}
-            {tab === 'notes' && !closed && (
-              <Notebook key={detail.id} detail={detail} report={report} />
-            )}
-            {tab === 'files' && !closed && (
-              <Files detail={detail} onUpdate={reload} report={report} />
-            )}
-          </Suspense>
-        </div>
-        <footer className="workspace-footer">
-          <span>
-            Margin <span> / </span> {date(detail.createdAt)}
-          </span>
-          <a href={`/api/sessions/${detail.id}/export`}>
-            <Download size={13} />
-            Export session
-          </a>
-        </footer>
-      </div>
-      {tutor && !closed && (
+              <div className="reading-next">
+                <span>Understanding has to survive use.</span>
+                <button
+                  className="primary"
+                  onClick={() => setTab(activity.kind === 'lab' ? 'lab' : 'write')}
+                >
+                  {activity.kind === 'lab' ? 'Open laboratory' : 'Work through the question'}
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <PrepareActivity
+              activity={activity}
+              disabled={locked}
+              onPrepare={() => void task('material')}
+            />
+          )}
+        </>
+      )}
+      {activity && tab === 'write' && (
+        <>
+          <ActivityHeading
+            activity={activity}
+            index={activity.position + 1}
+            onEdit={() => setEdit(true)}
+          />
+          {activity.material ? (
+            <ActivityWork
+              key={activity.id}
+              activity={activity}
+              detail={detail}
+              onUpdate={reload}
+              report={report}
+              task={task}
+              busy={locked}
+              closed={closed}
+              onClosed={(value) => {
+                setClosed(value);
+              }}
+              sandbox={sandbox}
+            />
+          ) : (
+            <PrepareActivity
+              activity={activity}
+              disabled={locked}
+              onPrepare={() => void task('material')}
+            />
+          )}
+        </>
+      )}
+      {activity && tab === 'lab' && (
+        <>
+          {activity.material?.lab ? (
+            <Laboratory
+              key={activity.id}
+              activity={activity}
+              detail={detail}
+              onUpdate={async () => {
+                await reload();
+              }}
+              report={report}
+              sandbox={sandbox}
+            />
+          ) : (
+            <PrepareActivity
+              activity={activity}
+              disabled={locked}
+              onPrepare={() => void task('material')}
+            />
+          )}
+        </>
+      )}
+      {activity && tab === 'review' && (
+        <Review
+          activity={activity}
+          detail={detail}
+          busy={locked}
+          task={task}
+          onWrite={() => setTab('write')}
+          onAsk={question}
+        />
+      )}
+      {tab === 'sources' && !closed && (
+        <Sources
+          key={sourceRef ? sourceRef.sourceId + '-' + sourceRef.page : 'reader'}
+          detail={detail}
+          onUpdate={async () => {
+            await reload();
+          }}
+          report={report}
+          onAsk={question}
+          initialRef={sourceRef}
+        />
+      )}
+      {tab === 'notes' && !closed && <Notebook key={detail.id} detail={detail} report={report} />}
+      {tab === 'files' && !closed && <Files detail={detail} onUpdate={reload} report={report} />}
+      {tab === 'tutor' && !closed && (
         <aside className="tutor-panel">
           <header>
             <div>
               <Sparkles size={17} />
               <h3>Thinking partner</h3>
             </div>
-            <button
-              className="icon-button"
-              aria-label="Close thinking partner"
-              onClick={() => setTutor(false)}
-            >
-              <PanelRightClose size={18} />
-            </button>
           </header>
           <div className="tutor-context">
             <span className="eyebrow">IN CONTEXT</span>
@@ -587,6 +423,70 @@ export default function Workspace({
           </p>
         </aside>
       )}
+    </Suspense>
+  );
+  return (
+    <div className="workspace docked-workspace">
+      <h1 className="sr-only">{detail.title}</h1>
+      {activeJob && (
+        <div className="job-progress" role="status">
+          <LoaderCircle size={17} className="spin" />
+          <div>
+            <strong>{activeJob.phase}</strong>
+            <span>
+              {activeJob.kind === 'plan'
+                ? 'Researching and structuring this session'
+                : activeJob.kind === 'assess'
+                  ? 'Examining your reasoning against the criteria'
+                  : activeJob.kind === 'complete'
+                    ? 'Synthesizing evidence and six next directions'
+                    : 'Your saved work stays available while Codex works'}
+            </span>
+          </div>
+          <button
+            className="text-button"
+            onClick={() => void act('/jobs/' + activeJob.id + '/cancel', {})}
+          >
+            Cancel
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      {lastJob?.status === 'failed' && (
+        <div className="job-error" role="alert">
+          <p>
+            <strong>The task needs attention.</strong> {lastJob.error}
+          </p>
+          <button
+            className="secondary"
+            disabled={locked}
+            onClick={() => void act('/jobs/' + lastJob.id + '/retry', {})}
+          >
+            <RotateCcw size={14} />
+            Retry {lastJob.kind === 'material' ? 'preparation' : lastJob.kind}
+          </button>
+        </div>
+      )}
+      {detail.status === 'paused' && (
+        <div className="paused-notice">
+          This session is paused. Its work is still available.
+          <button
+            className="text-button"
+            onClick={() => void act('/sessions/' + detail.id + '/resume', {})}
+          >
+            Make this my current session
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      )}
+      <DockWorkspace
+        sessionId={detail.id}
+        savedLayout={detail.workspaceLayout}
+        allowed={allowed}
+        handle={dockHandle}
+        render={renderView}
+        report={report}
+      />
       {edit && activity && (
         <EditActivity
           activity={activity}
@@ -749,25 +649,33 @@ function ActivityWork({
             <p>
               <strong>{closed ? 'Closed-book workspace' : 'Retrieval practice'}</strong>
               {closed
-                ? 'Sources, notes and tutor are temporarily hidden. This is an honor-based exercise.'
-                : 'Read the prompt, then put the source aside and explain in your own words.'}
+                ? 'Sources, notes and AI are hidden.'
+                : 'Put the source aside; use your own reasoning.'}
             </p>
           </div>
           <button
             className="secondary"
-            onClick={() => {
-              if (closed) setSourcesReopened(true);
-              onClosed(!closed);
+            onClick={async () => {
+              try {
+                await save();
+                await onUpdate();
+                if (closed) setSourcesReopened(true);
+                onClosed(!closed);
+              } catch (error) {
+                report((error as Error).message);
+              }
             }}
           >
             {closed ? 'Leave closed-book mode' : 'Begin closed-book attempt'}
           </button>
         </div>
       )}
-      <div className="assignment">
-        <span className="eyebrow">THE INTELLECTUAL WORK</span>
+      <details className="assignment document-assignment">
+        <summary>
+          Assignment <span>{activity.title}</span>
+        </summary>
         <Markdown>{material.prompt}</Markdown>
-      </div>
+      </details>
       <details className="criteria">
         <summary>What a defensible response needs to establish</summary>
         {activity.criteria.map((c) => (
@@ -795,7 +703,7 @@ function ActivityWork({
           </span>
           {workTab === 'response' && (
             <button className="text-button" onClick={() => setPreview(!preview)}>
-              {preview ? 'Edit' : 'Math preview'}
+              {preview ? 'Return to document' : 'Reading view'}
               <Eye size={13} />
             </button>
           )}
@@ -811,7 +719,7 @@ function ActivityWork({
                 </Markdown>
               </div>
             ) : (
-              <Editor label="Written response" value={draft} onChange={setDraft} />
+              <DocumentEditor label="Written response" value={draft} onChange={setDraft} />
             )
           ) : (
             <Editor label="Project code" language="python" value={code} onChange={setCode} />
@@ -821,7 +729,7 @@ function ActivityWork({
       <div className="editor-foot">
         <span>
           {workTab === 'response'
-            ? 'Markdown & LaTeX · $inline$ or $$display$$'
+            ? 'Rich text · Use the equation button for mathematics'
             : 'Python standard library · 8 CPU seconds · 768 MB · No network'}
         </span>
         {workTab === 'code' && (
@@ -1139,7 +1047,7 @@ function Notebook({ detail, report }: { detail: SessionDetail; report: (s: strin
       <div className="editor-toolbar">
         <span className="save-state">{status}</span>
         <button className="text-button" onClick={() => setPreview(!preview)}>
-          {preview ? 'Edit' : 'Math preview'}
+          {preview ? 'Return to document' : 'Reading view'}
           <Eye size={14} />
         </button>
       </div>
@@ -1148,7 +1056,7 @@ function Notebook({ detail, report }: { detail: SessionDetail; report: (s: strin
           <Markdown>{text || '*A little room to think.*'}</Markdown>
         </div>
       ) : (
-        <Editor value={text} onChange={setText} label="Session notes" minHeight="440px" />
+        <DocumentEditor value={text} onChange={setText} label="Session notes" minHeight="440px" />
       )}
     </div>
   );

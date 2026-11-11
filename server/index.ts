@@ -23,7 +23,7 @@ if (dev) {
       host: '127.0.0.1',
       port: port + 1,
       strictPort: true,
-      proxy: { '/api': `http://127.0.0.1:${port}` },
+      proxy: { '/api': `http://127.0.0.1:${port}`, '/pdfjs': `http://127.0.0.1:${port}` },
     },
   });
   await server.listen();

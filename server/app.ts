@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
@@ -74,7 +76,7 @@ export async function createApp(options: {
       .header('X-Frame-Options', 'DENY');
     reply.header(
       'Content-Security-Policy',
-      `default-src 'self'; script-src 'self'${options.dev ? " 'unsafe-inline'" : ''}; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'${options.dev ? ' ws://127.0.0.1:* ws://localhost:*' : ''}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`,
+      `default-src 'self'; script-src 'self'${options.dev ? " 'unsafe-inline'" : ''}; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self'${options.dev ? ' ws://127.0.0.1:* ws://localhost:*' : ''}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`,
     );
   });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
@@ -139,6 +141,7 @@ export async function createApp(options: {
         title: z.string().trim().min(1).max(200).optional(),
         revision: z.number().int().optional(),
         expectedNotes: z.string().optional(),
+        workspaceLayout: z.record(z.string(), z.unknown()).optional(),
         readerState: z
           .object({ sourceId: z.string(), page: z.number().int().min(1), original: z.boolean() })
           .optional(),
@@ -240,28 +243,90 @@ export async function createApp(options: {
       .type(source.mediaType === 'application/pdf' ? 'application/pdf' : 'application/octet-stream')
       .send(await sources.readBlob(source.sha256));
   });
-  app.post('/api/sessions/:sid/annotations', async (request) => {
-    const sid = params(request).sid;
-    const body = z
-      .object({
-        sourceId: z.string(),
-        page: z.number().int().min(1),
-        quote: z.string().max(8000),
-        note: z.string().max(20000),
-      })
-      .parse(request.body);
-    const source = store.get<Source>('sources', body.sourceId);
+  const annotationBody = z.object({
+    sourceId: z.string(),
+    page: z.number().int().min(1),
+    kind: z.enum(['highlight', 'sticky']).optional(),
+    quote: z.string().max(8000),
+    note: z.string().max(20000),
+    rects: z
+      .array(
+        z
+          .object({
+            x: z.number().min(0).max(1),
+            y: z.number().min(0).max(1),
+            width: z.number().positive().max(1),
+            height: z.number().positive().max(1),
+          })
+          .refine(
+            (r) => r.x + r.width <= 1.002 && r.y + r.height <= 1.002,
+            'Rectangle must stay on the page',
+          ),
+      )
+      .max(300)
+      .optional(),
+    anchor: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
+  });
+  const saveAnnotation = (sid: string, raw: unknown, annotationId?: string) => {
+    const body = annotationBody.parse(raw),
+      source = store.get<Source>('sources', body.sourceId);
     if (source.sessionId !== sid || !source.pages[body.page - 1])
       throw new AppError('Source page not found', 404);
-    if (body.quote && !normalize(source.pages[body.page - 1]).includes(normalize(body.quote)))
+    if (annotationId) {
+      const existing = store.get<import('../shared/schema.ts').Annotation & { sessionId: string }>(
+        'annotations',
+        annotationId,
+      );
+      if (
+        existing.sessionId !== sid ||
+        existing.sourceId !== body.sourceId ||
+        existing.page !== body.page
+      )
+        throw new AppError('Annotation not found', 404);
+    }
+    // PDF.js selection is grounded geometrically in the original PDF. Poppler's text
+    // order/ligatures can differ; those user-authored selections are not AI quotations.
+    if (
+      body.quote &&
+      !(source.mediaType === 'application/pdf' && body.rects?.length) &&
+      !normalize(source.pages[body.page - 1]).includes(normalize(body.quote))
+    )
       throw new AppError('The selected passage does not match this source page.');
-    return store.put('annotations', { ...body, id: id(), sessionId: sid, createdAt: now() });
+    return store.put('annotations', {
+      ...body,
+      id: annotationId ?? id(),
+      sessionId: sid,
+      createdAt: annotationId
+        ? store.get<import('../shared/schema.ts').Annotation>('annotations', annotationId).createdAt
+        : now(),
+    });
+  };
+  app.post('/api/sessions/:sid/annotations', async (request) =>
+    saveAnnotation(params(request).sid, request.body),
+  );
+  app.patch('/api/sessions/:sid/annotations/:annotationId', async (request) =>
+    saveAnnotation(
+      params(request).sid,
+      request.body,
+      z.object({ annotationId: z.string() }).parse(request.params).annotationId,
+    ),
+  );
+  app.delete('/api/sessions/:sid/annotations/:annotationId', async (request) => {
+    const { sid, annotationId } = z
+      .object({ sid: z.string(), annotationId: z.string() })
+      .parse(request.params);
+    const record = store.get<{ sessionId: string }>('annotations', annotationId);
+    if (record.sessionId !== sid) throw new AppError('Annotation not found', 404);
+    store.db
+      .prepare('DELETE FROM records WHERE collection=? AND id=?')
+      .run('annotations', annotationId);
+    return { deleted: true };
   });
   app.post('/api/sessions/:sid/tasks', async (request) => {
     const sid = params(request).sid;
     const body = z
       .object({
-        kind: z.enum(['plan', 'material', 'assess', 'tutor', 'complete', 'defense']),
+        kind: z.enum(['plan', 'material', 'assess', 'tutor', 'complete', 'defense', 'excerpts']),
         activityId: z.string().nullable().optional(),
         submissionId: z.string().nullable().optional(),
         text: z.string().max(40000).default(''),
@@ -471,6 +536,13 @@ export async function createApp(options: {
     store.put('recommendations', { ...recommendation, chosenSessionId: session.id });
     return session;
   });
+  const pdfAssets = dirname(fileURLToPath(import.meta.resolve('pdfjs-dist/package.json')));
+  for (const folder of ['cmaps', 'standard_fonts'])
+    await app.register(fastifyStatic, {
+      root: resolve(pdfAssets, folder),
+      prefix: `/pdfjs/${folder}/`,
+      decorateReply: false,
+    });
   if (options.staticRoot && existsSync(options.staticRoot)) {
     await app.register(fastifyStatic, { root: options.staticRoot });
     app.setNotFoundHandler((request, reply) =>

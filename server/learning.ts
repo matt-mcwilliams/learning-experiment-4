@@ -15,6 +15,8 @@ import {
 } from '../shared/schema.ts';
 import { type Agent } from './codex.ts';
 import { SourceService } from './sources.ts';
+import { excerptPrompt, verifyExcerpts } from './excerpts.ts';
+import { ExcerptsSchema } from '../shared/schema.ts';
 import { executePython } from './sandbox.ts';
 import { editorial, taskPrompt } from './prompts.ts';
 export class LearningService {
@@ -33,7 +35,7 @@ export class LearningService {
   ) {
     const detail = this.store.detail(sessionId);
     if (kind === 'plan' && detail.plan) throw new AppError('This session already has a plan.');
-    if (['material', 'assess', 'defense'].includes(kind) && !activityId)
+    if (['material', 'assess', 'defense', 'excerpts'].includes(kind) && !activityId)
       throw new AppError('Choose an activity.');
     if (activityId) {
       const a = this.store.activity(sessionId, activityId);
@@ -58,6 +60,11 @@ export class LearningService {
       if ((kind === 'assess' && s.assessment) || (kind === 'defense' && s.defense))
         throw new AppError('This review is already preserved. Submit a revision for a new review.');
     }
+    if (
+      kind === 'excerpts' &&
+      !detail.activities.find((a) => a.id === activityId)?.material?.references.length
+    )
+      throw new AppError('This activity has no source reading assignments yet.');
     const job = this.store.createJob(sessionId, kind, activityId, submissionId, userText);
     const controller = new AbortController();
     this.controllers.set(job.id, controller);
@@ -82,12 +89,18 @@ export class LearningService {
           : null;
       const result = await this.agent.run({
         instructions: editorial,
-        prompt: taskPrompt(job.kind, detail, profile, job.activityId, job.submissionId, userText),
+        prompt:
+          job.kind === 'excerpts'
+            ? excerptPrompt(
+                detail,
+                detail.activities.find((a) => a.id === job.activityId)!.material!,
+              )
+            : taskPrompt(job.kind, detail, profile, job.activityId, job.submissionId, userText),
         schema: outputSchemas[job.kind],
         model: profile.model,
-        webResearch: profile.webResearch,
+        webResearch: job.kind === 'excerpts' ? false : profile.webResearch,
         threadId: previous,
-        tools: this.sources.tools(job.sessionId),
+        tools: job.kind === 'excerpts' ? {} : this.sources.tools(job.sessionId),
         signal,
         onProgress: (phase, ids) => {
           if (!signal.aborted && this.store.get<Job>('jobs', job.id).status === 'running')
@@ -96,6 +109,34 @@ export class LearningService {
       });
       if (signal.aborted) return;
       const parsed = outputSchemas[job.kind].parse(result);
+      if (
+        job.kind === 'material' &&
+        (parsed as Material).references.some(
+          (r) =>
+            this.store.list<Source>('sources', job.sessionId).find((s) => s.id === r.sourceId)
+              ?.mediaType === 'application/pdf',
+        )
+      ) {
+        const material = parsed as Material;
+        this.sources.verifyReferences(job.sessionId, material.references);
+        const current = this.store.detail(job.sessionId);
+        this.store.updateJob(job.id, { phase: 'Formatting source excerpts for reading' });
+        try {
+          const formatted = await this.agent.run({
+            instructions: editorial,
+            prompt: excerptPrompt(current, material),
+            schema: ExcerptsSchema,
+            model: profile.model,
+            webResearch: false,
+            tools: {},
+            signal,
+            onProgress: () => {},
+          });
+          material.excerpts = verifyExcerpts(current, material, formatted);
+        } catch (error) {
+          material.excerptError = (error as Error).message.slice(0, 1200);
+        }
+      }
       if (job.kind === 'material' && (parsed as Material).lab) {
         const material = parsed as Material,
           lab = material.lab!;
@@ -135,7 +176,14 @@ export class LearningService {
       }
       if (signal.aborted) return;
       this.store.transaction(() => {
-        if (job.kind === 'material') {
+        if (job.kind === 'excerpts') {
+          const a = this.store.activity(job.sessionId, job.activityId!);
+          const excerpts = verifyExcerpts(this.store.detail(job.sessionId), a.material!, parsed);
+          this.store.put('activities', {
+            ...a,
+            material: { ...a.material!, excerpts, excerptError: undefined },
+          });
+        } else if (job.kind === 'material') {
           const material = parsed as Material;
           this.sources.verifyReferences(job.sessionId, material.references);
           const a = this.store.activity(job.sessionId, job.activityId!);

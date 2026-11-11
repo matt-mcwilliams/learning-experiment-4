@@ -62,6 +62,27 @@ export const MaterialSchema = z.object({
   starterCode: z.string(),
   lab: LabSpec.nullable(),
 });
+export const ExcerptsSchema = z.object({
+  fragments: z
+    .array(
+      z.object({
+        sourceId: z.string(),
+        page: z.number().int().min(1),
+        blocks: z
+          .array(
+            z.object({
+              kind: z.enum(['paragraph', 'heading', 'equation', 'list']),
+              text: z.string().min(1).max(5000),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .min(1)
+    .max(8),
+});
+export type ReadingExcerpt = z.infer<typeof ExcerptsSchema>['fragments'][number];
 export const AssessmentSchema = z.object({
   summary: z.string(),
   judgment: z.enum(['demonstrated', 'developing', 'insufficient-evidence']),
@@ -121,6 +142,8 @@ export const CompletionSchema = z.object({
 export const TutorSchema = z.object({ answer: z.string(), references: z.array(ReferenceSchema) });
 export type Plan = z.infer<typeof PlanSchema>;
 export type Material = z.infer<typeof MaterialSchema> & {
+  excerpts?: ReadingExcerpt[];
+  excerptError?: string;
   technicalCheck?: { checkedAt: string; measurements: number; runtime: string };
 };
 export type Lab = z.infer<typeof LabSpec>;
@@ -149,6 +172,7 @@ export type Session = {
   plan: Plan | null;
   notes: string;
   currentActivity: string | null;
+  workspaceLayout?: Record<string, unknown>;
   readerState?: { sourceId: string; page: number; original: boolean };
   createdAt: string;
   updatedAt: string;
@@ -173,6 +197,9 @@ export type Annotation = {
   page: number;
   quote: string;
   note: string;
+  kind?: 'highlight' | 'sticky';
+  rects?: { x: number; y: number; width: number; height: number }[];
+  anchor?: { x: number; y: number };
   createdAt: string;
 };
 export type Submission = {
@@ -186,7 +213,8 @@ export type Submission = {
   assessment: Assessment | null;
   defense: Defense | null;
 };
-export type JobKind = 'plan' | 'material' | 'assess' | 'tutor' | 'complete' | 'defense';
+export type JobKind =
+  'plan' | 'material' | 'assess' | 'tutor' | 'complete' | 'defense' | 'excerpts';
 export type Job = {
   id: string;
   sessionId: string;
@@ -286,4 +314,5 @@ export const outputSchemas = {
   tutor: TutorSchema,
   complete: CompletionSchema,
   defense: DefenseSchema,
+  excerpts: ExcerptsSchema,
 };

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createApp } from '../server/app.ts';
 import type { Agent, AgentRequest } from '../server/codex.ts';
+import { reflowPdfText } from '../shared/excerpts.ts';
 import { plan, material, labMaterial, assessment, defense, completion } from './fixtures.ts';
 class BrowserFixture implements Agent {
   async status() {
@@ -12,10 +13,34 @@ class BrowserFixture implements Agent {
   }
   async run(request: AgentRequest) {
     const p = request.prompt;
+    if (p.startsWith('Format')) {
+      const pages = JSON.parse(p.split('UNTRUSTED SOURCE PAGES:\n')[1]);
+      return {
+        fragments: pages.map((page: any) => ({
+          sourceId: page.sourceId,
+          page: page.page,
+          blocks: [{ kind: 'paragraph', text: reflowPdfText(page.text) }],
+        })),
+      };
+    }
     if (p.startsWith('Construct')) return plan;
     if (p.startsWith('Prepare')) {
       const context = JSON.parse(p.split('UNTRUSTED STRUCTURED CONTEXT:\n')[1]);
-      return context.activity.kind === 'lab' ? labMaterial : material;
+      return context.activity.kind === 'lab'
+        ? labMaterial
+        : context.sources[0]?.mediaType === 'application/pdf'
+          ? {
+              ...material,
+              references: [
+                {
+                  sourceId: context.sources[0].id,
+                  page: 1,
+                  quote: '',
+                  purpose: 'Examine the dependence assumption in the original text.',
+                },
+              ],
+            }
+          : material;
     }
     if (p.startsWith('Critique')) return assessment;
     if (p.startsWith('Conduct')) return defense;

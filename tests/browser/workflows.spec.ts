@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { annotatedPdf } from '../pdf-fixture';
 import AxeBuilder from '@axe-core/playwright';
 test('start a document session, autosave mathematical work, critique, defend, conclude and retain six directions', async ({
   page,
@@ -31,12 +32,12 @@ test('start a document session, autosave mathematical work, critique, defend, co
     });
   await page.getByRole('button', { name: 'Create session', exact: true }).click();
   await expect(
-    page.getByRole('heading', { name: 'Reasoning about sample means', exact: true }),
+    page.getByRole('heading', { name: 'What you should be able to defend', exact: true }),
   ).toBeVisible();
   await expect(
     page.locator('.activity-nav').filter({ hasText: 'Independent reasoning' }),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Sources', exact: true }).click();
+  await page.getByRole('tab', { name: 'PDF & sources', exact: true }).click();
   await expect(page.locator('.source-text')).toContainText('covariance terms');
   await page
     .getByRole('textbox', { name: 'NOTE ON THIS PAGE' })
@@ -58,38 +59,40 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await expect(page.locator('.prose .katex-display').first()).toBeVisible();
   await page.getByRole('button', { name: 'Work through the question' }).click();
   await page.getByRole('button', { name: 'Begin closed-book attempt' }).click();
-  await expect(page.getByRole('tab', { name: 'Sources', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'PDF & sources', exact: true })).toHaveCount(0);
   await page
-    .locator('.cm-content[contenteditable=true]')
+    .getByRole('textbox', { name: 'Written response' })
     .fill(
       'Variance decreases with sample size. For independent observations, $\\mathrm{Var}(\\bar X)=\\sigma^2/n$. I still need to derive the dependence case.',
     );
-  await expect(page.locator('.save-state').first()).toHaveText(/Saved/);
+  await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
   await page.reload();
-  await expect(page.locator('.cm-content')).toContainText('Variance decreases with sample size.');
-  await page.getByRole('button', { name: 'Math preview', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Written response' })).toContainText(
+    'Variance decreases with sample size.',
+  );
+  await page.getByRole('button', { name: 'Reading view', exact: true }).click();
   await expect(page.locator('.response-preview .katex')).toBeVisible();
   await page.getByRole('button', { name: 'Mark activity done' }).click();
-  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('button', { name: 'Return to document', exact: true }).click();
   await page
-    .locator('.cm-content')
+    .getByRole('textbox', { name: 'Written response' })
     .fill(
       'Variance decreases with sample size. My derivation must account for covariance terms when observations are dependent.',
     );
-  await expect(page.locator('.save-state').first()).toHaveText(/Saved/);
+  await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
   await page.getByRole('button', { name: 'Submit for critique' }).click();
   await expect(page.getByRole('heading', { name: 'Does the reasoning hold?' })).toBeVisible();
   await expect(page.locator('.assessment-summary')).toContainText('unresolved');
   await expect(page.locator('.criterion-result')).toContainText('covariance');
   await page.getByRole('button', { name: 'Convene an expert defense' }).click();
   await expect(page.locator('.reviewer')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Thinking partner', exact: true }).click();
+  await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Question for thinking partner' })
     .fill('What changes when samples are correlated?');
   await page.getByRole('button', { name: 'Send question' }).click();
   await expect(page.locator('.message.assistant')).toContainText('covariance terms');
-  await page.getByRole('button', { name: 'Close thinking partner' }).click();
+  await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('tab', { name: 'Session brief' }).click();
   await page.getByRole('button', { name: 'Conclude this session' }).click();
   await page.getByRole('button', { name: 'Synthesize & save' }).click();
@@ -122,7 +125,7 @@ test('generated apparatus requires a prediction, collects reproducible real tria
   await page.getByRole('button', { name: 'Run an investigation' }).click();
   await page.getByRole('button', { name: 'Create session', exact: true }).click();
   await expect(
-    page.getByRole('heading', { name: 'Reasoning about sample means', exact: true }),
+    page.getByRole('heading', { name: 'What you should be able to defend', exact: true }),
   ).toBeVisible();
   await page.locator('.activity-nav').filter({ hasText: 'A reproducible investigation' }).click();
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
@@ -192,4 +195,111 @@ test('workspace controls meet automated accessibility checks', async ({ page }) 
       nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
     })),
   ).toEqual([]);
+});
+
+test('native PDF highlights and sticky notes, inline excerpts, rich formatting and split layouts survive reload', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  if (await page.getByRole('dialog').isVisible())
+    await page.getByRole('button', { name: 'Decide later' }).click();
+  await page.getByRole('button', { name: /New session/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .fill('Read and annotate a paper about independent sampling.');
+  await page
+    .getByRole('dialog')
+    .locator('input[type=file]')
+    .setInputFiles({ name: 'sampling.pdf', mimeType: 'application/pdf', buffer: annotatedPdf() });
+  await page.getByRole('button', { name: 'Create session', exact: true }).click();
+  await page.getByRole('tab', { name: 'Read', exact: true }).click();
+  await page.getByRole('button', { name: 'Prepare this activity' }).click();
+  await expect(page.locator('.reading-excerpt blockquote')).toContainText('A sample mean combines');
+  await expect(page.locator('.reading-excerpt footer')).toContainText('Source words checked');
+  await page.getByRole('button', { name: 'Open source', exact: true }).click();
+  await expect(page.locator('.react-pdf__Page canvas')).toBeVisible();
+  const passage = page
+    .locator('.textLayer span')
+    .filter({ hasText: 'A sample mean combines' })
+    .first();
+  await expect(passage).toBeVisible();
+  await page.getByRole('button', { name: 'Highlight text', exact: true }).click();
+  await passage.evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await passage.dispatchEvent('mouseup');
+  await expect(page.locator('.pdf-highlight')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Sticky note', exact: true }).click();
+  await page.locator('.pdf-page-stage').click({ position: { x: 220, y: 210 } });
+  await page
+    .getByRole('textbox', { name: 'Sticky note text' })
+    .fill('Why do the covariance terms vanish?');
+  await page.getByRole('button', { name: 'Save note', exact: true }).click();
+  await expect(page.locator('.pdf-note-pin')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect(page.locator('.pdf-highlight')).toHaveCount(1);
+  await page.screenshot({ path: 'test-results/pdf-reader.png', fullPage: true });
+  await page.reload();
+  await expect(page.locator('.pdf-highlight')).toHaveCount(1);
+  await expect(page.locator('.pdf-note-pin')).toHaveCount(1);
+  await page.locator('.pdf-note-pin').click();
+  await expect(page.getByRole('textbox', { name: 'Sticky note text' })).toHaveValue(
+    'Why do the covariance terms vanish?',
+  );
+  await page
+    .getByRole('textbox', { name: 'Sticky note text' })
+    .fill('Check independence before adding variances.');
+  await page.getByRole('button', { name: 'Save note', exact: true }).click();
+  await page.getByRole('tab', { name: 'Work', exact: true }).click();
+  const editor = page.getByRole('textbox', { name: 'Written response' });
+  await editor.fill('A defensible variance argument needs an explicit independence assumption.');
+  await editor.press('Control+a');
+  await page.getByRole('button', { name: 'Bold', exact: true }).click();
+  await expect(editor.locator('strong')).toContainText('A defensible');
+  await expect(page.locator('.view-write .document-status')).toContainText('9 words');
+  await editor.press('ArrowRight');
+  await page.getByRole('button', { name: 'Insert equation', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Equation LaTeX' }).fill('\\sigma^2/n');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Insert equation', exact: true })
+    .click();
+  await expect(editor.locator('.katex')).toBeVisible();
+  await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
+  await page.getByRole('button', { name: 'Split right', exact: true }).click();
+  await expect(page.locator('.dv-groupview')).toHaveCount(2);
+  await page.screenshot({ path: 'test-results/split-workspace.png', fullPage: true });
+  await page.reload();
+  await expect(page.locator('.dv-groupview')).toHaveCount(2);
+  await page.getByRole('tab', { name: 'Work', exact: true }).click();
+  await expect(
+    page.getByRole('textbox', { name: 'Written response' }).locator('strong'),
+  ).toContainText('A defensible');
+  await expect(
+    page.getByRole('textbox', { name: 'Written response' }).locator('.katex'),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
+  await page
+    .getByRole('tab', { name: 'AI chat', exact: true })
+    .dragTo(page.getByRole('tab', { name: 'Work', exact: true }));
+  await expect(
+    page
+      .locator('.dv-groupview')
+      .filter({ has: page.getByRole('tab', { name: 'Work', exact: true }) }),
+  ).toContainText('AI chat');
+  await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
+  await page.getByRole('button', { name: 'Close active tab', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'AI chat', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open a tab', exact: true }).click();
+  await page.locator('.tab-menu').getByRole('button', { name: 'AI chat', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
+  expect(errors).toEqual([]);
 });

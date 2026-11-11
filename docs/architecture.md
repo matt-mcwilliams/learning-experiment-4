@@ -1,6 +1,6 @@
 # Architecture
 
-Margin is a single-user browser workspace backed by one local Node process. React and Vite provide the interface, Fastify provides a validated loopback API, Node's SQLite stores structured state, and content-addressed files retain originals and outputs. There is no hosted application dependency.
+Margin is a single-user browser workspace backed by one local Node process. React and Vite provide the interface, Dockview provides persistent split panes and draggable tabs, Tiptap provides rich-text documents with Markdown storage, PDF.js renders the original PDF with annotation overlays, Fastify provides a validated loopback API, Node's SQLite stores structured state, and content-addressed files retain originals and outputs. There is no hosted application dependency.
 
 ## Ownership boundaries
 
@@ -76,3 +76,13 @@ A technical startup check tests the default configuration in a sandbox before pu
 Add an activity type by extending its runtime contract and view, then add a representative learning-quality evaluation. Add a runner through a capability interface with independent isolation tests; never allow a generated shell command onto the host. Add sources with provenance and precise location metadata. Add richer assessment evidence only when it can link to actual submissions or measurements.
 
 Avoid introducing curricula, multi-user identity, vector databases, managed queues, or a fleet of agents until a specific learning workflow justifies them. The structured evidence remains useful without any of those systems.
+
+## Reader and document workspace
+
+Each session can store a serialized `workspaceLayout` with tab order, groups, active views, split direction and dimensions. It is cached immediately in the browser and autosaved to SQLite. The learner can drag tabs, split horizontally/vertically, resize panes, and close/reopen views. AI chat is a normal tab. Views retain their state while switching tabs; closed-book mode temporarily hides source, note and AI views and retains the prior layout. The large session heading has been removed; the sidebar identifies the current session.
+
+Prose uses a Tiptap document with toolbar formatting, word/character counts, and editable inline/block mathematics. Existing Markdown drafts load without migration and new drafts continue to serialize to Markdown. Python remains in CodeMirror. Rich document serialization is exercised through save/reload tests rather than assumed from appearance.
+
+The PDF viewer draws the original page using a locally hosted PDF.js worker, fonts and character maps. Selection rectangles and sticky-note anchors use normalized page coordinates, so overlays survive resizing and zoom. Existing textual annotations remain visible in the annotation list. PDF.js and Poppler can order text or handle ligatures differently: user-authored PDF selections with geometric anchors are stored as annotations, while AI source quotations still require source-text verification. Notes and highlights can be edited and deleted within their owning session.
+
+Reading activities embed page-linked source passages. The `excerpts` job uses the existing ChatGPT-authenticated Codex adapter for paragraph layout and passage selection. Every returned block must be a contiguous source substring after Unicode normalization, physical-line-wrap cleanup and line-break dehyphenation. The formatter cannot paraphrase or add invented headings. Remote quotation limits remain enforced. Equation text is preserved verbatim; the original PDF remains authoritative for complex notation. New PDF-based materials request formatted excerpts automatically; existing activities have a Format source excerpts action. If automatic formatting fails, the lesson remains available with its original source and a formatting retry action. No failed formatted passage is published.
