@@ -1,0 +1,35 @@
+name: Verify learning workflows
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y python3 bubblewrap poppler-utils util-linux apparmor-profiles
+      - run: npm ci
+      - name: Permit bubblewrap through the distribution's scoped AppArmor profile when needed
+        run: |
+          if node --import tsx --input-type=module -e "import {sandboxAvailable} from './server/sandbox.ts'; process.exit((await sandboxAvailable()) ? 0 : 1)"; then
+            exit 0
+          fi
+          sudo install -m 0644 /usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
+          sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+      - name: Require actual Linux isolation
+        run: node --import tsx --input-type=module -e "import {sandboxAvailable} from './server/sandbox.ts'; if (!(await sandboxAvailable())) throw new Error('Sandbox unavailable; execution checks must not be skipped in CI');"
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Select the test browser
+        run: node --input-type=module -e "import {chromium} from '@playwright/test'; console.log('MARGIN_CHROMIUM=' + chromium.executablePath());" >> "$GITHUB_ENV"
+      - run: npm run test:browser

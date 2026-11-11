@@ -1,0 +1,195 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+test('start a document session, autosave mathematical work, critique, defend, conclude and retain six directions', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Decide later' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Make room for a difficult idea.' }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'test-results/welcome-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Begin a learning session' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .fill('Understand sample means and investigate what independence contributes.');
+  await page
+    .getByRole('dialog')
+    .locator('input[type=file]')
+    .setInputFiles({
+      name: 'sampling-note.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from(
+        'For independent random variables, the variance of a sum is the sum of variances. For dependent variables, include covariance terms. This is an authored test source.'.repeat(
+          100,
+        ),
+      ),
+    });
+  await page.getByRole('button', { name: 'Create session', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Reasoning about sample means', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.activity-nav').filter({ hasText: 'Independent reasoning' }),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Sources', exact: true }).click();
+  await expect(page.locator('.source-text')).toContainText('covariance terms');
+  await page
+    .getByRole('textbox', { name: 'NOTE ON THIS PAGE' })
+    .fill('Independence needs justification, not just algebra.');
+  await page.getByRole('button', { name: 'Save annotation' }).click();
+  await expect(page.locator('.annotation')).toContainText('Independence needs justification');
+  const readerSaved = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'PATCH' &&
+      r.url().includes('/api/sessions/') &&
+      r.request().postDataJSON()?.readerState?.page === 2,
+  );
+  await page.getByRole('spinbutton', { name: 'Page number' }).fill('2');
+  await readerSaved;
+  await page.reload();
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('2');
+  await page.getByRole('tab', { name: 'Read', exact: true }).click();
+  await page.getByRole('button', { name: 'Prepare this activity' }).click();
+  await expect(page.locator('.prose .katex-display').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Work through the question' }).click();
+  await page.getByRole('button', { name: 'Begin closed-book attempt' }).click();
+  await expect(page.getByRole('tab', { name: 'Sources', exact: true })).toHaveCount(0);
+  await page
+    .locator('.cm-content[contenteditable=true]')
+    .fill(
+      'Variance decreases with sample size. For independent observations, $\\mathrm{Var}(\\bar X)=\\sigma^2/n$. I still need to derive the dependence case.',
+    );
+  await expect(page.locator('.save-state').first()).toHaveText(/Saved/);
+  await page.reload();
+  await expect(page.locator('.cm-content')).toContainText('Variance decreases with sample size.');
+  await page.getByRole('button', { name: 'Math preview', exact: true }).click();
+  await expect(page.locator('.response-preview .katex')).toBeVisible();
+  await page.getByRole('button', { name: 'Mark activity done' }).click();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page
+    .locator('.cm-content')
+    .fill(
+      'Variance decreases with sample size. My derivation must account for covariance terms when observations are dependent.',
+    );
+  await expect(page.locator('.save-state').first()).toHaveText(/Saved/);
+  await page.getByRole('button', { name: 'Submit for critique' }).click();
+  await expect(page.getByRole('heading', { name: 'Does the reasoning hold?' })).toBeVisible();
+  await expect(page.locator('.assessment-summary')).toContainText('unresolved');
+  await expect(page.locator('.criterion-result')).toContainText('covariance');
+  await page.getByRole('button', { name: 'Convene an expert defense' }).click();
+  await expect(page.locator('.reviewer')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Thinking partner', exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Question for thinking partner' })
+    .fill('What changes when samples are correlated?');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(page.locator('.message.assistant')).toContainText('covariance terms');
+  await page.getByRole('button', { name: 'Close thinking partner' }).click();
+  await page.getByRole('tab', { name: 'Session brief' }).click();
+  await page.getByRole('button', { name: 'Conclude this session' }).click();
+  await page.getByRole('button', { name: 'Synthesize & save' }).click();
+  await expect(page.getByRole('heading', { name: 'What the work leaves you with.' })).toBeVisible();
+  await page.getByRole('button', { name: /Possible directions/ }).click();
+  await expect(page.locator('.recommendation')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Knowledge record', exact: true }).click();
+  await expect(page.locator('.knowledge-card')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Challenge this judgment' }).click();
+  await page
+    .getByRole('textbox', { name: 'Challenge this assessment' })
+    .fill('The uncertainty should specify the covariance assumption.');
+  await page.getByRole('button', { name: 'Save challenge' }).click();
+  await expect(page.locator('.knowledge-card blockquote')).toContainText('covariance assumption');
+  await page.getByRole('button', { name: 'Portfolio', exact: true }).click();
+  await expect(page.locator('.session-row')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+test('generated apparatus requires a prediction, collects reproducible real trials, exports data, and preserves independent analysis', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const dialog = page.getByRole('dialog');
+  if (await dialog.isVisible()) await page.getByRole('button', { name: 'Decide later' }).click();
+  await page.getByRole('button', { name: /New session/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .fill('Investigate how sample size changes Monte Carlo uncertainty.');
+  await page.getByRole('button', { name: 'Run an investigation' }).click();
+  await page.getByRole('button', { name: 'Create session', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Reasoning about sample means', exact: true }),
+  ).toBeVisible();
+  await page.locator('.activity-nav').filter({ hasText: 'A reproducible investigation' }).click();
+  await page.getByRole('tab', { name: 'Read', exact: true }).click();
+  await page.getByRole('button', { name: 'Prepare apparatus' }).click();
+  await expect(page.getByRole('button', { name: 'Open laboratory' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open laboratory' }).click();
+  const collect = page.getByRole('button', { name: 'Collect one trial' });
+  await expect(collect).toBeDisabled();
+  await page
+    .getByRole('textbox', { name: 'YOUR INVESTIGABLE HYPOTHESIS' })
+    .fill('Quadrupling n halves the standard deviation of replicate means.');
+  await page
+    .getByRole('textbox', { name: 'PREDICT AN OBSERVATION BEFORE REVEALING DATA' })
+    .fill('At n=16, the standard deviation should be approximately 0.25.');
+  await collect.click();
+  await expect(page.locator('.run-selector button')).toHaveCount(1);
+  await expect(page.locator('.run-detail')).toContainText('40 simulated observations');
+  await collect.click();
+  await expect(page.locator('.run-selector button')).toHaveCount(2);
+  await expect(page.locator('.data-table-wrap tbody tr')).toHaveCount(40);
+  const rows = await page.locator('.data-table-wrap tbody').innerText();
+  await page.locator('.run-selector button').first().click();
+  expect(await page.locator('.data-table-wrap tbody').innerText()).toEqual(rows);
+  const download = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Export measurements' }).click();
+  expect((await download).suggestedFilename()).toBe('measurements.csv');
+  await page.getByRole('button', { name: 'Independent analysis' }).click();
+  await page
+    .locator('.cm-content')
+    .fill(
+      "import json, statistics\ntrials=json.load(open('trials.json'))\nprint('Recorded trials:', len(trials))\nprint('Spread:', statistics.stdev(x['sample_mean'] for x in trials[0]['result']['measurements']))",
+    );
+  await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
+  await expect(page.locator('.run-output')).toContainText('Recorded trials: 2');
+  await page.screenshot({ path: 'test-results/laboratory-desktop.png', fullPage: true });
+  await page.reload();
+  await expect(page.locator('.cm-content')).toContainText('Recorded trials:');
+  await expect(page.locator('.run-selector button')).toHaveCount(3);
+});
+test('mobile layout keeps navigation and session controls accessible without horizontal overflow', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  if (await page.getByRole('dialog').isVisible())
+    await page.getByRole('button', { name: 'Decide later' }).click();
+  await expect(page.getByRole('button', { name: 'Toggle sidebar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  await page.getByRole('button', { name: 'Portfolio', exact: true }).click();
+  await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  await expect(page.getByRole('heading', { name: 'A record of real work.' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: 'test-results/mobile-portfolio.png', fullPage: true });
+});
+
+test('workspace controls meet automated accessibility checks', async ({ page }) => {
+  await page.goto('/');
+  if (await page.getByRole('dialog').isVisible())
+    await page.getByRole('button', { name: 'Decide later' }).click();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
+    })),
+  ).toEqual([]);
+});

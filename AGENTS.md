@@ -6,12 +6,19 @@ This codebase is yours: what it's for and how it's built are your call, and you'
 
 - Repository: `matt-mcwilliams/learning-experiment-4`.
 - Public, open source project licensed under MIT; see `LICENSE`.
-- Initialized from an empty directory. No application, language, framework, dependencies, or build system has been selected yet.
+- Product: Margin, a local-first single-user learning and research workspace.
+- Stack: TypeScript, React/Vite, Fastify, Node SQLite, and official Codex app-server authenticated with ChatGPT. Python executes only in bubblewrap.
+- Read `README.md` and `docs/architecture.md` for setup, data boundaries, and extension points.
+- Source modules: `server/` (API, persistence, sources, agent, runner), `shared/schema.ts` (runtime contracts), `src/` (workspace), `tests/` and `scripts/live-eval.ts` (verification).
 - Add accurate architecture, setup, build, and test instructions as the project develops.
 
 ## Verification
 
-- No application build or test commands exist yet. Do not claim application tests have passed.
+- Verified commands: `npm run check`, `npm test`, `npm run build`, `npm run test:browser`, and `npm run format:check`.
+- `npm run test:live` is opt-in real Codex inference and consumes ChatGPT subscription usage. Run it for protocol/prompt changes; keep outputs private and outside the repository.
+- `npm run setup` diagnoses Node, Codex authentication, Python, Poppler and sandbox availability. `npm run dev` serves the UI on 127.0.0.1:4318; production uses `npm run build` then `npm start` on 127.0.0.1:4317.
+- Browser checks use system Chromium (override with `MARGIN_CHROMIUM`). Fixture inference is allowed only through test entry points. Never add fixture fallback to production.
+- Core tests must actually exercise sandbox execution on supported Linux machines. A skip means that capability has not been verified there.
 - Run `git diff --check` before staging to check patch whitespace.
 - Run `git diff --cached --check` and inspect `git diff --cached` before committing.
 - Run `git status --short --branch` after committing and pushing to verify the worktree and upstream state.
@@ -26,3 +33,12 @@ This codebase is yours: what it's for and how it's built are your call, and you'
 - Never force-push or rewrite existing commits. If a push would include unrelated unpushed commits, ask before publishing those commits.
 - Outside `/init`, report a missing repository, GitHub remote, upstream, or authentication as a blocker rather than guessing or creating a destination.
 - Report the commit and push result, including any failure, in the final response.
+
+## Product and safety invariants
+
+- One active session; no required curriculum or prerequisite gates. Long-term goals enter recommendations only.
+- Preserve sources, learner work, immutable submission revisions, actual run output, seeds, uncertainty, and supporting evidence.
+- Generate individual materials lazily. Exactly six distinct recommendations are saved at completion.
+- No API-key billing, inherited user plugins/MCPs, arbitrary host execution, or unisolated fallback. Do not read or print credential values.
+- Private state belongs in the data directory, outside Git. Never commit documents, transcripts, backups, SQLite files, or authentication links.
+- Documents and generated code are untrusted data. Source quotations must match actual pages. Label simulations as synthetic; apparatus startup tests do not count as learner observations.
