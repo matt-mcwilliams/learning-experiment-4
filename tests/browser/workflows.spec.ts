@@ -317,6 +317,8 @@ test('scanned PDF images paint, pages scroll continuously, and annotations retai
     if (response.url().includes('jbig2_nowasm_fallback.js')) decoders.push(response.status());
   });
   const headers = { 'x-margin-client': '1' };
+  const { profile } = await (await page.request.get('/api/bootstrap')).json();
+  await page.request.put('/api/profile', { headers, data: { ...profile, onboarded: true } });
   const created = await page.request.post('/api/sessions', {
     headers,
     data: { objective: 'Inspect an original scanned PDF', mode: 'paper', hours: 1 },
@@ -330,8 +332,6 @@ test('scanned PDF images paint, pages scroll continuously, and annotations retai
   });
   expect(attached.ok()).toBe(true);
   await page.goto('/');
-  if (await page.getByRole('dialog').isVisible())
-    await page.getByRole('button', { name: 'Decide later' }).click();
   await page.getByRole('tab', { name: 'PDF & sources', exact: true }).click();
   const scroll = page.getByRole('region', { name: 'Scrollable PDF' });
   const pdfPage = (number: number) => page.locator(`.pdf-page-stage[data-page-number="${number}"]`);
@@ -340,11 +340,14 @@ test('scanned PDF images paint, pages scroll continuously, and annotations retai
     pdfPage(number)
       .locator('canvas')
       .evaluate((canvas: HTMLCanvasElement) => {
+        if (canvas.style.visibility === 'hidden' || !canvas.width || !canvas.height) return 0;
         const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
         let ink = 0;
         for (let i = 0; i < data.length; i += 4)
-          if (data[i] < 180 && data[i + 1] < 180 && data[i + 2] < 180) ink++;
-        return ink;
+          if (data[i + 3] && data[i] < 180 && data[i + 1] < 180 && data[i + 2] < 180) ink++;
+        // A newly allocated canvas can be transparent or entirely black before
+        // PDF.js paints it. Neither is the scan artwork this test must verify.
+        return ink >= canvas.width * canvas.height * 0.95 ? 0 : ink;
       });
   await expect.poll(() => paintedPixels(1)).toBeGreaterThan(5000);
   expect(decoders).toContain(200);
