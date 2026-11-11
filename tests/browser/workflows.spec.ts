@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotatedPdf } from '../pdf-fixture';
+import { annotatedPdf, scannedPdf } from '../pdf-fixture';
 import AxeBuilder from '@axe-core/playwright';
 test('start a document session, autosave mathematical work, critique, defend, conclude and retain six directions', async ({
   page,
@@ -302,4 +302,112 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.locator('.tab-menu').getByRole('button', { name: 'AI chat', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('scanned PDF images paint, pages scroll continuously, and annotations retain their own page', async ({
+  page,
+}) => {
+  const warnings: string[] = [],
+    decoders: number[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'warning' || message.type() === 'error') warnings.push(message.text());
+  });
+  page.on('pageerror', (error) => warnings.push(error.message));
+  page.on('response', (response) => {
+    if (response.url().includes('jbig2_nowasm_fallback.js')) decoders.push(response.status());
+  });
+  const headers = { 'x-margin-client': '1' };
+  const created = await page.request.post('/api/sessions', {
+    headers,
+    data: { objective: 'Inspect an original scanned PDF', mode: 'paper', hours: 1 },
+  });
+  const session = await created.json();
+  const attached = await page.request.post(`/api/sessions/${session.id}/sources`, {
+    headers,
+    multipart: {
+      file: { name: 'scan.pdf', mimeType: 'application/pdf', buffer: scannedPdf() },
+    },
+  });
+  expect(attached.ok()).toBe(true);
+  await page.goto('/');
+  if (await page.getByRole('dialog').isVisible())
+    await page.getByRole('button', { name: 'Decide later' }).click();
+  await page.getByRole('tab', { name: 'PDF & sources', exact: true }).click();
+  const scroll = page.getByRole('region', { name: 'Scrollable PDF' });
+  const pdfPage = (number: number) => page.locator(`.pdf-page-stage[data-page-number="${number}"]`);
+  await expect(page.locator('.pdf-page-stage')).toHaveCount(8);
+  const paintedPixels = async (number: number) =>
+    pdfPage(number)
+      .locator('canvas')
+      .evaluate((canvas: HTMLCanvasElement) => {
+        const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+        let ink = 0;
+        for (let i = 0; i < data.length; i += 4)
+          if (data[i] < 180 && data[i + 1] < 180 && data[i + 2] < 180) ink++;
+        return ink;
+      });
+  await expect.poll(() => paintedPixels(1)).toBeGreaterThan(5000);
+  expect(decoders).toContain(200);
+  await expect.poll(() => page.locator('.react-pdf__Page canvas').count()).toBeLessThan(8);
+  const firstHeight = await pdfPage(1).evaluate((el) => el.getBoundingClientRect().height);
+  await scroll.hover();
+  await page.mouse.wheel(0, firstHeight - 180);
+  // Both sides of the page break are present in the same scroll viewport.
+  await expect(pdfPage(2)).toBeInViewport();
+  const gap = await pdfPage(2).evaluate(
+    (el) =>
+      el.getBoundingClientRect().top - el.previousElementSibling!.getBoundingClientRect().bottom,
+  );
+  expect(gap).toBeCloseTo(22, 0);
+  await page.mouse.wheel(0, 300);
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('2');
+  await expect.poll(() => paintedPixels(2)).toBeGreaterThan(5000);
+  await page.getByRole('button', { name: 'Sticky note', exact: true }).click();
+  await pdfPage(2).click({ position: { x: 180, y: 220 } });
+  await page
+    .getByRole('textbox', { name: 'Sticky note text' })
+    .fill('This observation belongs to page two.');
+  // Scrolling while a note is open must not silently move the note to another page.
+  await scroll.evaluate((el) => {
+    const target = el.querySelector('[data-page-number="3"]')!;
+    el.scrollTop += target.getBoundingClientRect().top - el.getBoundingClientRect().top;
+  });
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('3');
+  await page.getByRole('button', { name: 'Save note', exact: true }).click();
+  await expect(pdfPage(2).locator('.pdf-note-pin')).toHaveCount(1);
+  const detail = await (await page.request.get(`/api/sessions/${session.id}`)).json();
+  expect(detail.annotations[0].page).toBe(2);
+  await page.getByRole('spinbutton', { name: 'Page number' }).fill('6');
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('6');
+  await expect.poll(() => paintedPixels(6)).toBeGreaterThan(5000);
+  await scroll.evaluate((el) => {
+    el.scrollTop += 150;
+  });
+  const offset = () =>
+    pdfPage(6).evaluate((el) => {
+      const root = el.closest('.pdf-scroll')!,
+        r = el.getBoundingClientRect();
+      return (root.getBoundingClientRect().top - r.top) / r.height;
+    });
+  const before = await offset();
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect.poll(async () => Math.abs((await offset()) - before)).toBeLessThan(0.02);
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get(`/api/sessions/${session.id}`)).json()).readerState?.page,
+    )
+    .toBe(6);
+  await page.screenshot({ path: 'test-results/continuous-pdf.png', fullPage: true });
+  await page.reload();
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('6');
+  await expect.poll(() => paintedPixels(6)).toBeGreaterThan(5000);
+  await expect.poll(async () => Math.abs((await offset()) - before)).toBeLessThan(0.02);
+  await page.getByRole('button', { name: 'Previous page', exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Page number' })).toHaveValue('5');
+  expect(
+    warnings.filter((message) =>
+      /decode image|failed to initialize|resolve module|content security|uncaught/i.test(message),
+    ),
+  ).toEqual([]);
 });

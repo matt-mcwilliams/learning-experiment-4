@@ -29,16 +29,82 @@ export function annotatedPdf() {
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
     `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
   ];
-  let value = '%PDF-1.4\n';
+  return assemblePdf(objects);
+}
+function assemblePdf(objects: (string | Buffer)[]) {
+  const chunks = [Buffer.from('%PDF-1.4\n')];
   const offsets: number[] = [];
+  let length = chunks[0].length;
   for (let i = 0; i < objects.length; i++) {
-    offsets.push(Buffer.byteLength(value));
-    value += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
+    offsets.push(length);
+    const object = Buffer.concat([
+      Buffer.from(`${i + 1} 0 obj\n`),
+      Buffer.from(objects[i]),
+      Buffer.from('\nendobj\n'),
+    ]);
+    chunks.push(object);
+    length += object.length;
   }
-  const xref = Buffer.byteLength(value);
-  value +=
-    `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
-    offsets.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('') +
-    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(value);
+  const xref = length;
+  chunks.push(
+    Buffer.from(
+      `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
+        offsets.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('') +
+        `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`,
+    ),
+  );
+  return Buffer.concat(chunks);
+}
+
+// Original scan-like artwork: a border and six horizontal bars, encoded as a
+// JBIG2 MMR generic region. An invisible OCR line reproduces the reported failure:
+// text selection works even when the separate image decoder is missing.
+// The Group 4 bytes encode a 192x160 bilevel image, not third-party paper content.
+export function scannedPdf(pages = 8) {
+  const fax = Buffer.from(
+    'JqGSG////yHkU//MBkBpf////////////IJtK///////8f///////////yCbSv///////H///////////8gm0r///////x////////////IJtK///////8f///////////yCbSv///////H///////////8gm0r///////x////////////////////+P/x///+ACACA',
+    'base64',
+  );
+  const segment = (number: number, type: number, data: Buffer) => {
+    const header = Buffer.alloc(11);
+    header.writeUInt32BE(number);
+    header[4] = type;
+    header[6] = 1;
+    header.writeUInt32BE(data.length, 7);
+    return Buffer.concat([header, data]);
+  };
+  const info = Buffer.alloc(19);
+  info.writeUInt32BE(192);
+  info.writeUInt32BE(160, 4);
+  const region = Buffer.alloc(18);
+  region.writeUInt32BE(192);
+  region.writeUInt32BE(160, 4);
+  region[17] = 1;
+  const image = Buffer.concat([segment(1, 48, info), segment(2, 38, Buffer.concat([region, fax]))]);
+  const stream = (dictionary: string, data: Buffer) =>
+    Buffer.concat([
+      Buffer.from(`<< ${dictionary} /Length ${data.length} >>\nstream\n`),
+      data,
+      Buffer.from('\nendstream'),
+    ]);
+  return assemblePdf([
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    `<< /Type /Pages /Kids [${Array.from({ length: pages }, (_, i) => `${i + 6} 0 R`).join(' ')}] /Count ${pages} >>`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    stream(
+      '/Type /XObject /Subtype /Image /Width 192 /Height 160 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode',
+      image,
+    ),
+    stream(
+      '',
+      Buffer.from(
+        'q 400 0 0 330 100 250 cm /Scan Do Q\nBT /F1 12 Tf 3 Tr 50 590 Td (Selectable scan text. Inspect the observations independently.) Tj ET',
+      ),
+    ),
+    ...Array.from(
+      { length: pages },
+      (_, i) =>
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${i % 2 ? '792 612' : '612 792'}] /Resources << /Font << /F1 3 0 R >> /XObject << /Scan 4 0 R >> >> /Contents 5 0 R >>`,
+    ),
+  ]);
 }

@@ -172,6 +172,7 @@ export default function Sources({
             onUpdate={onUpdate}
             report={report}
             onAsk={onAsk}
+            restorePosition={!initialRef}
           />
         </Suspense>
       ) : source ? (

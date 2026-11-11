@@ -74,6 +74,8 @@ The adapter checks for a ChatGPT account **before starting any inference turn** 
 
 The workspace uses draggable tabs across the top, including **AI chat**. Drag a tab to an edge to split the workspace, or use **Split right** / **Split below**. Resize panes by dragging their dividers, close/reopen tabs, or reset the layout. Your layout is saved per session and restored on restart.
 
+PDFs scroll continuously between pages. The toolbar tracks your current page; page numbers and arrows jump within the document. Your reading position and zoom are remembered in this browser. Only nearby pages are painted to limit memory use. Scanned papers use locally served image decoders, so the page image and its selectable text layer both render.
+
 There are no streaks, badges, numerical mastery scores, or mandatory curriculum gates. Knowledge judgments can be challenged. Saved recommendations stay available even when you choose something else.
 
 ## Data ownership and recovery

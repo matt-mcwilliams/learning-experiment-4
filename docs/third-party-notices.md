@@ -13,4 +13,4 @@ Margin's source is MIT licensed. Dependencies retain their own licenses. `packag
 Original papers and uploaded documents are not relicensed by this project. Their originals and short excerpts remain private learner data; remote-source rights are not assumed. The live evaluation downloads its representative paper into temporary private storage and does not redistribute the PDF or generated lessons in this repository.
 
 - **Dockview**, **Tiptap** and **react-pdf**: MIT license.
-- **PDF.js**: Apache License 2.0; worker, fonts and character maps are served locally from the installed package.
+- **PDF.js**: Apache License 2.0; worker, fonts, character maps and image decoder modules are served locally from the installed package. Decoder-specific notices (`LICENSE_JBIG2`, `LICENSE_OPENJPEG`, and the related `LICENSE_PDFJS_*` files) remain in `pdfjs-dist/wasm` and are served alongside the modules.

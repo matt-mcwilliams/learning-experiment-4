@@ -79,7 +79,13 @@ export async function createApp(options: {
       `default-src 'self'; script-src 'self'${options.dev ? " 'unsafe-inline'" : ''}; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self'${options.dev ? ' ws://127.0.0.1:* ws://localhost:*' : ''}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`,
     );
   });
-  await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    // Fonts, lazy UI chunks and PDF decoders are ordinary static assets. Loading
+    // or reloading a document must not consume the API's request allowance.
+    allowList: (request) => !request.url.startsWith('/api/'),
+  });
   await app.register(multipart, {
     limits: { fileSize: MAX_SOURCE_BYTES, files: 1, fields: 3, parts: 4 },
   });
@@ -537,7 +543,7 @@ export async function createApp(options: {
     return session;
   });
   const pdfAssets = dirname(fileURLToPath(import.meta.resolve('pdfjs-dist/package.json')));
-  for (const folder of ['cmaps', 'standard_fonts'])
+  for (const folder of ['cmaps', 'standard_fonts', 'wasm'])
     await app.register(fastifyStatic, {
       root: resolve(pdfAssets, folder),
       prefix: `/pdfjs/${folder}/`,
