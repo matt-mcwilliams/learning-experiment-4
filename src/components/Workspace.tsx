@@ -144,7 +144,8 @@ export default function Workspace({
           {detail.plan ? (
             <>
               <div className="brief-intro">
-                <span className="eyebrow">THE QUESTION & THE ROUTE</span>
+                <span className="eyebrow">SESSION BRIEF · {detail.hours} HOURS</span>
+                <h2 className="brief-title">{detail.title}</h2>
                 <Markdown>{detail.plan.introduction}</Markdown>
               </div>
               <div className="objectives">

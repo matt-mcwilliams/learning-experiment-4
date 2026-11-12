@@ -12,10 +12,14 @@ Baseline commit: `7e5f33d`. The first empty-desk capture exposed a harness race:
 
 The independent screenshot-only baseline critic scored **6.3/10**. Its three highest-priority findings were duplicated navigation, nested editor shells, and pervasive explanatory microcopy. It also noted weak active-tab contrast, pale tiny labels, a mechanically spread brief, and an assembled-looking monogram. These findings are recorded as evidence, not as a numerical target for subsequent critics.
 
+## 01 · Editorial proof of concept
+
+[Discovery and precise brief](01-discover.md). [Empty desk](checkpoints/01-editorial-desk/01-empty-desk.png), [new session](checkpoints/01-editorial-desk/02-new-session.png), [brief](checkpoints/01-editorial-desk/03-session-brief.png), [reading + writing](checkpoints/01-editorial-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/01-editorial-desk/05-source-and-writing.png), [mobile](checkpoints/01-editorial-desk/06-mobile-brief.png). Build and six captures passed. The next step is an independent screenshot-only critique.
+
 ## Ordered design procedures
 
-1. **Random discovery:** pending; generate a long random alphanumeric seed in the shell and derive varied directions from its subpatterns. The seed is design process material and never appears in the interface.
-2. **Ambitious brief:** pending; choose a direction suited to close reading, writing, and reproducible investigation.
+1. **Random discovery:** complete; [recovery seed and six directions](01-discover.md#1-random-discovery). The seed never appears in the interface.
+2. **Ambitious brief:** complete; [editorial research desk brief](01-discover.md#2-ambitious-brief), based on the user’s chosen taste.
 3. **Independent critique:** in progress; each critic receives only screenshots and the same fixed visual critique prompt. Critics do not read implementation, previous critiques, or a target score.
 4. **Image assessment:** pending after the first refinement.
 5. **Motion assessment:** pending after the image assessment.

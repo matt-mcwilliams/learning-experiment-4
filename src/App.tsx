@@ -142,11 +142,9 @@ export default function App() {
             setPage('workspace');
           }}
         >
-          <span className="brand-mark">
-            m<span>·</span>
-          </span>
+          <span className="brand-mark" aria-hidden="true" />
           <span>
-            margin<span className="brand-sub">A place for difficult ideas</span>
+            margin<span className="brand-sub">Read. Think. Work it out.</span>
           </span>
         </a>
         <button className="new-button" onClick={() => setNewSession(true)}>
@@ -255,10 +253,7 @@ export default function App() {
                       : 'MAKE IT YOURS'}
             </span>
           </div>
-          <span className="topbar-right">
-            <span className="tiny-line" />
-            Independent learning, thoughtfully.
-          </span>
+          <span className="topbar-right">A local research workspace</span>
         </header>
         {error && (
           <div className="error-banner" role="alert">
@@ -283,56 +278,49 @@ export default function App() {
             />
           ) : (
             <div className="welcome">
-              <div className="welcome-overline">
-                <span className="tiny-line" /> THE INDEPENDENT SCHOLAR'S WORKSPACE
-              </div>
-              <h1>
-                Make room for
-                <br />a difficult <em>idea.</em>
-              </h1>
+              <div className="welcome-overline">YOUR DESK / NO SESSION OPEN</div>
+              <h1>Make room for a difficult idea.</h1>
               <p>
-                Read closely. Work things out. Follow a question
-                <br className="desktop-break" /> until you can defend your answer.
+                Bring a paper, a question, or something you want to make sense of.
+                <br className="desktop-break" /> Keep the source and your own reasoning side by
+                side.
               </p>
-              <button className="primary welcome-cta" onClick={() => setNewSession(true)}>
-                Begin a learning session
-                <ArrowRight size={18} />
-              </button>
+              <div className="desk-start">
+                <span className="desk-prompt">What would you like to understand?</span>
+                <button className="primary welcome-cta" onClick={() => setNewSession(true)}>
+                  Begin a learning session
+                  <ArrowRight size={18} />
+                </button>
+                <span className="desk-shortcut">or press ⌘ / Ctrl K</span>
+              </div>
               <div className="welcome-grid">
                 {[
                   {
-                    icon: FileText,
+                    number: '01',
                     name: 'Read & question',
                     body: 'A paper, a theory, a passage worth understanding.',
                   },
                   {
-                    icon: FlaskConical,
+                    number: '02',
                     name: 'Investigate',
                     body: 'Make a prediction. Collect evidence. Reconsider.',
                   },
                   {
-                    icon: Code2,
+                    number: '03',
                     name: 'Build & defend',
                     body: 'Create something. Explain why it holds up.',
                   },
-                ].map(({ icon: Icon, name, body }) => (
+                ].map(({ number, name, body }) => (
                   <div key={name}>
-                    <Icon size={23} strokeWidth={1.3} />
+                    <span className="desk-index">{number}</span>
                     <h3>{name}</h3>
                     <p>{body}</p>
                   </div>
                 ))}
               </div>
               <div className="welcome-foot">
-                <span>ONE SESSION AT A TIME.</span>
-                <p>
-                  No course to finish. No streak to keep.
-                  <br />
-                  Just a more considered way to learn.
-                </p>
-                <span className="orbital" aria-hidden="true">
-                  ✳︎
-                </span>
+                <span>ONE QUESTION AT A TIME</span>
+                <p>Your sources, notes, and drafts stay on this device.</p>
               </div>
             </div>
           ))}

@@ -96,7 +96,8 @@ export default function DockWorkspace({
   handle.current = { open };
   const defaults = (d: DockviewApi) => {
     d.clear();
-    for (const tab of allowed) {
+    const initialTabs: WorkspaceTab[] = ['brief', 'read', 'write', 'lab', 'sources', 'tutor'];
+    for (const tab of initialTabs.filter((tab) => allowed.includes(tab))) {
       d.addPanel({
         id: tab,
         title: titles[tab],
@@ -219,15 +220,16 @@ export default function DockWorkspace({
   return (
     <div className="dock-workspace">
       <div className="layout-controls">
-        <span>Drag tabs to rearrange or split</span>
+        <span>Workspace</span>
         <div>
           <button
-            className="icon-button"
+            className="icon-button views-button"
             aria-label="Open a tab"
             title="Open a tab"
             onClick={() => setMenu(!menu)}
           >
             <Plus size={16} />
+            <span>Views</span>
           </button>
           <button
             className="icon-button"
