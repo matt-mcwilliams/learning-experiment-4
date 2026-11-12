@@ -18,6 +18,7 @@ This codebase is yours: what it's for and how it's built are your call, and you'
 - `npm run test:live` is opt-in real Codex inference and consumes ChatGPT subscription usage. Run it for protocol/prompt changes; keep outputs private and outside the repository.
 - `npm run setup` diagnoses Node, Codex authentication, Python, Poppler and sandbox availability. `npm run dev` serves the UI on 127.0.0.1:4318; production uses `npm run build` then `npm start` on 127.0.0.1:4317.
 - Browser checks use system Chromium (override with `MARGIN_CHROMIUM`). Fixture inference is allowed only through test entry points. Never add fixture fallback to production.
+- Public-safe design captures: after `npm run build`, run `npx tsx scripts/design-checkpoint.ts docs/design/checkpoints/<number-name>`. The script starts a disposable fixture server, captures six desktop/mobile states, and removes its database. See `docs/design/README.md` for the chronological review trail.
 - Core tests must actually exercise sandbox execution on supported Linux machines. A skip means that capability has not been verified there.
 - Run `git diff --check` before staging to check patch whitespace.
 - Run `git diff --cached --check` and inspect `git diff --cached` before committing.
