@@ -37,15 +37,14 @@ export default function ReadingExcerpts({
     });
   return (
     <section className="reading-excerpts">
-      <header>
-        <h3>Source passage</h3>
-        {!formatted && (
+      {!formatted && (
+        <header>
           <button className="secondary" disabled={busy} onClick={onFormat}>
             <Sparkles size={14} />
             Format source excerpts
           </button>
-        )}
-      </header>
+        </header>
+      )}
       {material.excerptError && (
         <p className="inline-notice">
           The lesson is ready, but excerpt formatting needs another pass. The original source is
@@ -69,7 +68,6 @@ export default function ReadingExcerpts({
                 <ArrowUpRight size={14} />
               </button>
             </header>
-            {assignment?.purpose && <p className="excerpt-purpose">{assignment.purpose}</p>}
             <blockquote>
               {ref.blocks.map((block, j) =>
                 block.kind === 'heading' ? (
@@ -83,14 +81,18 @@ export default function ReadingExcerpts({
                 ),
               )}
             </blockquote>
-            <footer>
-              {formatted
-                ? 'Source words checked · paragraphs formatted with AI'
-                : 'Source extract · format for a more readable passage'}
-              {source?.mediaType === 'application/pdf'
-                ? ' · Original equation and figure layout remains in the PDF.'
-                : ''}
-            </footer>
+            <details className="excerpt-details">
+              <summary>Source details</summary>
+              {assignment?.purpose && <p>{assignment.purpose}</p>}
+              <p>
+                {formatted
+                  ? 'Source words checked · paragraphs formatted with AI'
+                  : 'Source extract · format for a more readable passage'}
+                {source?.mediaType === 'application/pdf'
+                  ? ' · Original equation and figure layout remains in the PDF.'
+                  : ''}
+              </p>
+            </details>
           </article>
         );
       })}

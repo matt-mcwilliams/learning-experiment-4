@@ -11,17 +11,13 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await page.getByRole('button', { name: 'Decide later' }).click();
   await expect(page.getByRole('heading', { name: 'Start with a question.' })).toBeVisible();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(page.locator('.welcome-cta')).toHaveCSS('transition-duration', '0s');
+  await expect(page.locator('.inline-session .primary')).toHaveCSS('transition-duration', '0s');
   await page.screenshot({ path: 'test-results/welcome-desktop.png', fullPage: true });
   await page
     .getByRole('textbox', { name: 'Your question', exact: true })
     .fill('Understand sample means and investigate what independence contributes.');
-  await page.getByRole('button', { name: 'Begin a learning session' }).click();
-  await expect(
-    page.getByRole('dialog').getByRole('textbox', { name: 'Your question' }),
-  ).toHaveValue('Understand sample means and investigate what independence contributes.');
   await page
-    .getByRole('dialog')
+    .locator('.inline-session')
     .locator('input[type=file]')
     .setInputFiles({
       name: 'sampling-note.txt',
@@ -121,9 +117,11 @@ test('generated apparatus requires a prediction, collects reproducible real tria
   await page.goto('/');
   const dialog = page.getByRole('dialog');
   if (await dialog.isVisible()) await page.getByRole('button', { name: 'Decide later' }).click();
+  await expect(page.locator('.inline-session')).toBeVisible();
   await page.getByRole('button', { name: /New session/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Your question', exact: true })).toBeFocused();
   await page
-    .getByRole('dialog')
+    .locator('.inline-session')
     .getByRole('textbox', { name: 'Your question' })
     .fill('Investigate how sample size changes Monte Carlo uncertainty.');
   await page
@@ -209,6 +207,7 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.goto('/');
   if (await page.getByRole('dialog').isVisible())
     await page.getByRole('button', { name: 'Decide later' }).click();
+  await expect(page.locator('.docked-workspace')).toBeVisible();
   await page.getByRole('button', { name: /New session/ }).click();
   await page
     .getByRole('dialog')
@@ -222,7 +221,9 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('button', { name: 'Prepare this activity' }).click();
   await expect(page.locator('.reading-excerpt blockquote')).toContainText('A sample mean combines');
-  await expect(page.locator('.reading-excerpt footer')).toContainText('Source words checked');
+  await page.locator('.excerpt-details > summary').click();
+  await expect(page.locator('.excerpt-details')).toContainText('Source words checked');
+  await page.locator('.excerpt-details > summary').click();
   await page.getByRole('button', { name: 'Open source', exact: true }).click();
   await expect(page.locator('.react-pdf__Page canvas')).toBeVisible();
   const passage = page
@@ -261,6 +262,11 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
     .getByRole('textbox', { name: 'Sticky note text' })
     .fill('Check independence before adding variances.');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
+  await page.locator('.source-actions > summary').click();
+  await page.getByRole('button', { name: 'Add a public source URL', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Public source URL', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add a public source URL', exact: true }).click();
+  await page.locator('.source-actions > summary').click();
   await page.getByRole('tab', { name: 'Work', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Written response' });
   await editor.fill('A defensible variance argument needs an explicit independence assumption.');
@@ -278,6 +284,7 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
     .click();
   await expect(editor.locator('.katex')).toBeVisible();
   await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Split right', exact: true }).click();
   await expect(page.locator('.dv-groupview')).toHaveCount(2);
   await expect(page.locator('.app')).toHaveClass(/sidebar-hidden/);
@@ -306,19 +313,22 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
       .filter({ has: page.getByRole('tab', { name: 'Work', exact: true }) }),
   ).toContainText('AI chat');
   await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Close active tab', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'AI chat', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Views: open a tab', exact: true }).click();
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.locator('.tab-menu').getByRole('button', { name: 'AI chat', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
   while (await page.getByRole('tab').count()) {
     await page.getByRole('tab').first().click();
+    await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
     await page.getByRole('button', { name: 'Close active tab', exact: true }).click();
   }
   await expect(page.locator('.empty-workspace')).toBeVisible();
-  await page.getByRole('button', { name: 'Views: open a tab', exact: true }).click();
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.locator('.tab-menu').getByRole('button', { name: 'Notebook', exact: true }).click();
   await expect(page.locator('.view-notes')).toBeVisible();
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Reset workspace layout', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('combobox', { name: 'Current view', exact: true })).toBeVisible();

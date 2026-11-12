@@ -3017,6 +3017,7 @@ code {
 .field input:focus-visible,
 .field select:focus-visible,
 .field textarea:focus-visible {
+  outline: 1px solid var(--accent);
   outline-offset: 0;
   border-color: var(--accent);
 }
@@ -3046,9 +3047,7 @@ code {
   flex-shrink: 0;
 }
 .reading-excerpts {
-  margin-top: 38px;
-  padding-top: 25px;
-  border-top: 1px solid var(--line);
+  margin-top: 28px;
 }
 .reading-excerpts > header {
   display: flex;
@@ -3087,7 +3086,7 @@ code {
   margin: 12px 0 20px;
 }
 .reading-excerpt blockquote {
-  margin: 0;
+  margin: 14px 0 0;
   font-family: var(--font-serif);
   font-size: 17px;
   line-height: 1.75;
@@ -3178,13 +3177,13 @@ code {
   min-height: var(--document-height);
   font-family: var(--font-serif);
   font-size: 19px;
-  line-height: 1.8;
+  line-height: 1.7;
   padding: 28px 0;
   outline: none;
   overflow-wrap: break-word;
 }
 .document-paper .tiptap p {
-  margin: 0 0 1em;
+  margin: 0 0 0.85em;
 }
 .document-paper .tiptap h1 {
   font-size: 33px;
@@ -3826,28 +3825,38 @@ code {
   letter-spacing: 0;
   margin-bottom: 34px;
 }
-.desk-start {
+.inline-session {
   max-width: 680px;
-  padding: 24px 0;
   border-top: 2px solid var(--ink);
+  padding-top: 12px;
 }
-.desk-start label {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 12px;
+.inline-session textarea {
+  font: 17px/1.7 var(--font-serif);
 }
-.desk-start textarea {
-  display: block;
-  width: 100%;
-  resize: vertical;
-  background: var(--canvas);
-  font: 21px/1.6 var(--font-serif);
-  padding: 18px;
-  margin-bottom: 20px;
+.inline-session .form-footer {
+  justify-content: flex-start;
 }
-.welcome-cta {
-  border-radius: 2px;
-  padding: 13px 18px;
+.menu-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 7px 0;
+}
+.tab-menu > .icon-button {
+  justify-content: flex-start;
+  gap: 9px;
+  min-height: 36px;
+}
+.excerpt-details {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 16px;
+}
+.excerpt-details > summary {
+  cursor: pointer;
+}
+.excerpt-details p {
+  line-height: 1.7;
+  margin: 12px 0 0;
 }
 .work-topline {
   display: flex;
@@ -4131,7 +4140,7 @@ textarea {
 }
 .view-write,
 .view-notes {
-  padding: 24px 24px 40px;
+  padding: 28px clamp(24px, 3.4vw, 52px) 40px;
 }
 .view-sources,
 .view-tutor {
@@ -4166,9 +4175,7 @@ textarea {
     min-width: 32px;
     min-height: 32px;
   }
-  .layout-controls button[aria-label='Split right'],
-  .layout-controls button[aria-label='Split below'],
-  .layout-controls button[aria-label='Close active tab'] {
+  .layout-controls .views-button > span {
     display: none;
   }
   .workspace-topbar .sidebar-toggle {

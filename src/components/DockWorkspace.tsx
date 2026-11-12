@@ -15,7 +15,7 @@ import {
   type IDockviewHeaderActionsProps,
   type DockviewReadyEvent,
 } from 'dockview-react';
-import { Columns2, Rows2, RotateCcw, Plus } from 'lucide-react';
+import { Columns2, Rows2, RotateCcw, MoreHorizontal, X } from 'lucide-react';
 import 'dockview-react/dist/styles/dockview.css';
 import { api as request } from '../api';
 export type WorkspaceTab =
@@ -273,49 +273,13 @@ export default function DockWorkspace({
       <div>
         <button
           className="icon-button views-button"
-          aria-label="Views: open a tab"
+          aria-label="Workspace menu"
           aria-expanded={menu}
-          title="Open a tab"
+          title="Workspace menu"
           onClick={() => setMenu(!menu)}
         >
-          <Plus size={16} />
-          <span>Views</span>
-        </button>
-        <button
-          className="icon-button"
-          aria-label="Split right"
-          title="Split right"
-          disabled={!available}
-          onClick={() => split('right')}
-        >
-          <Columns2 size={16} />
-        </button>
-        <button
-          className="icon-button"
-          aria-label="Split below"
-          title="Split below"
-          disabled={!available}
-          onClick={() => split('below')}
-        >
-          <Rows2 size={16} />
-        </button>
-        <button
-          className="icon-button"
-          aria-label="Close active tab"
-          title="Close active tab"
-          onClick={() => dock.current?.activePanel?.api.close()}
-        >
-          ×
-        </button>
-        <button
-          className="icon-button"
-          aria-label="Reset workspace layout"
-          title="Reset layout"
-          onClick={() => {
-            if (dock.current) defaults(dock.current);
-          }}
-        >
-          <RotateCcw size={15} />
+          <span>Workspace</span>
+          <MoreHorizontal size={17} />
         </button>
       </div>
       {menu && (
@@ -331,6 +295,53 @@ export default function DockWorkspace({
               {titles[t]}
             </button>
           ))}
+          <div className="menu-divider" />
+          <button
+            className="icon-button"
+            aria-label="Split right"
+            title="Split right"
+            disabled={!available}
+            onClick={() => {
+              split('right');
+              setMenu(false);
+            }}
+          >
+            <Columns2 size={16} /> Split right
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Split below"
+            title="Split below"
+            disabled={!available}
+            onClick={() => {
+              split('below');
+              setMenu(false);
+            }}
+          >
+            <Rows2 size={16} /> Split below
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Close active tab"
+            title="Close active tab"
+            onClick={() => {
+              dock.current?.activePanel?.api.close();
+              setMenu(false);
+            }}
+          >
+            <X size={15} /> Close active tab
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Reset workspace layout"
+            title="Reset layout"
+            onClick={() => {
+              if (dock.current) defaults(dock.current);
+              setMenu(false);
+            }}
+          >
+            <RotateCcw size={15} /> Reset workspace layout
+          </button>
         </div>
       )}
     </div>

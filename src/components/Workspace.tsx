@@ -732,6 +732,7 @@ function ActivityWork({
                 value={draft}
                 onChange={setDraft}
                 showFormatting={formatting}
+                minHeight="320px"
               />
             )
           ) : (

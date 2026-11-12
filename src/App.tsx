@@ -44,7 +44,6 @@ export default function App() {
     [detail, setDetail] = useState<SessionDetail | null>(null);
   const [page, setPage] = useState<Page>('workspace'),
     [newSession, setNewSession] = useState(false),
-    [deskQuestion, setDeskQuestion] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [sidebar, setSidebar] = useState(() => window.innerWidth > 760),
@@ -131,10 +130,15 @@ export default function App() {
       setError((e as Error).message);
     }
   };
+  const beginSession = () => {
+    if (!detail && page === 'workspace' && !busy)
+      document.querySelector<HTMLTextAreaElement>('.inline-session textarea')?.focus();
+    else setNewSession(true);
+  };
   if (!boot && !error) return <Loading />;
   return (
     <div className={'app ' + (!sidebar ? 'sidebar-hidden' : '')}>
-      <aside className="sidebar">
+      <aside className="sidebar" id="margin-navigation">
         <a
           className="brand"
           href="#"
@@ -146,7 +150,7 @@ export default function App() {
           <span className="brand-mark" aria-hidden="true" />
           <span>margin</span>
         </a>
-        <button className="new-button" onClick={() => setNewSession(true)}>
+        <button className="new-button" onClick={beginSession}>
           <Plus size={17} />
           New session<span>⌘ K</span>
         </button>
@@ -236,6 +240,9 @@ export default function App() {
             <button
               className="icon-button sidebar-toggle"
               aria-label="Toggle sidebar"
+              aria-controls="margin-navigation"
+              aria-expanded={sidebar}
+              title={detail ? 'Navigation · ' + detail.title : 'Navigation'}
               onClick={() => setSidebar(!sidebar)}
             >
               {sidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
@@ -279,27 +286,14 @@ export default function App() {
             <div className="welcome">
               <h1>Start with a question.</h1>
               <p>Read a paper, work through an idea, or test a prediction.</p>
-              <form
-                className="desk-start"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setNewSession(true);
-                }}
-              >
-                <label htmlFor="desk-question">Your question</label>
-                <textarea
-                  id="desk-question"
-                  rows={3}
-                  value={deskQuestion}
-                  onChange={(event) => setDeskQuestion(event.target.value)}
-                  maxLength={6000}
-                  placeholder="Write a question or describe a project."
-                />
-                <button className="primary welcome-cta" type="submit">
-                  Begin a learning session
-                  <ArrowRight size={18} />
-                </button>
-              </form>
+              <NewSession
+                inline
+                initialObjective=""
+                onClose={() => {}}
+                onCreate={create}
+                busy={busy}
+                connected={!!agent?.connected}
+              />
             </div>
           ))}
         {page === 'portfolio' && (
@@ -351,7 +345,7 @@ export default function App() {
       {newSession && (
         <NewSession
           onClose={() => setNewSession(false)}
-          initialObjective={detail ? '' : deskQuestion}
+          initialObjective=""
           onCreate={create}
           busy={busy}
           connected={!!agent?.connected}
@@ -365,7 +359,7 @@ export default function App() {
           <Onboarding profile={boot.profile} onSave={saveProfile} />
         </Modal>
       )}
-      <Keyboard onNew={() => setNewSession(true)} />
+      <Keyboard onNew={beginSession} />
     </div>
   );
 }
@@ -388,8 +382,10 @@ function NewSession({
   busy,
   connected,
   initialObjective,
+  inline = false,
 }: {
   initialObjective: string;
+  inline?: boolean;
   onClose: () => void;
   onCreate: (
     input: { objective: string; mode: string; hours: number },
@@ -404,89 +400,94 @@ function NewSession({
     [hours, setHours] = useState(3),
     [file, setFile] = useState<File | null>(null),
     [url, setUrl] = useState('');
-  return (
-    <Modal title="Plan a session" onClose={onClose} wide>
-      <form
-        className="session-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void onCreate({ objective, mode, hours }, file, url);
-        }}
-      >
+  const form = (
+    <form
+      className="session-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void onCreate({ objective, mode, hours }, file, url);
+      }}
+    >
+      <label className="field">
+        Your question
+        <textarea
+          autoFocus={!inline}
+          required
+          minLength={3}
+          maxLength={6000}
+          rows={4}
+          value={objective}
+          onChange={(e) => setObjective(e.target.value)}
+          placeholder="What would you like to understand or investigate?"
+        />
+      </label>
+      <div className="form-row session-options">
         <label className="field">
-          Your question
-          <textarea
-            autoFocus
-            required
-            minLength={3}
-            maxLength={6000}
-            rows={4}
-            value={objective}
-            onChange={(e) => setObjective(e.target.value)}
-            placeholder="What would you like to understand or investigate?"
-          />
+          Session type
+          <select
+            aria-label="Session type"
+            value={mode}
+            onChange={(event) => setMode(event.target.value)}
+          >
+            <option value="paper">Study a paper</option>
+            <option value="concept">Understand an idea</option>
+            <option value="investigation">Run an investigation</option>
+            <option value="project">Build & defend</option>
+          </select>
         </label>
-        <div className="form-row session-options">
-          <label className="field">
-            Session type
-            <select
-              aria-label="Session type"
-              value={mode}
-              onChange={(event) => setMode(event.target.value)}
-            >
-              <option value="paper">Study a paper</option>
-              <option value="concept">Understand an idea</option>
-              <option value="investigation">Run an investigation</option>
-              <option value="project">Build & defend</option>
-            </select>
-          </label>
-          <label className="field">
-            Time budget
-            <select value={hours} onChange={(event) => setHours(Number(event.target.value))}>
-              {[1, 2, 3, 4, 6, 8, 10].map((hours) => (
-                <option key={hours} value={hours}>
-                  About {hours} {hours === 1 ? 'hour' : 'hours'}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="field source-url-field">
-          <span>
-            Source URL <small>Optional</small>
-          </span>
-          <input
-            type="url"
-            placeholder="https://…"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-          />
+        <label className="field">
+          Time budget
+          <select value={hours} onChange={(event) => setHours(Number(event.target.value))}>
+            {[1, 2, 3, 4, 6, 8, 10].map((hours) => (
+              <option key={hours} value={hours}>
+                About {hours} {hours === 1 ? 'hour' : 'hours'}
+              </option>
+            ))}
+          </select>
         </label>
-        <label className={'file-drop' + (file ? ' has-file' : '')}>
-          {file ? <FileText size={17} /> : <Plus size={17} />}
-          <span>
-            {file ? file.name : 'Attach a paper or document'}
-            {!file && <small>PDF, Markdown or text · up to 20 MB</small>}
-          </span>
-          <input
-            type="file"
-            accept=".pdf,.txt,.md,.tex"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
-        {!connected && (
-          <p className="inline-notice">
-            Codex is not connected yet. You can save the session now and prepare it after signing in
-            under Preferences.
-          </p>
-        )}
-        <footer className="form-footer">
-          <button disabled={busy} className="primary" type="submit">
-            {busy ? 'Opening your session…' : 'Create session'}
-            <ArrowRight size={17} />
-          </button>
-        </footer>
-      </form>
+      </div>
+      <label className="field source-url-field">
+        <span>
+          Source URL <small>Optional</small>
+        </span>
+        <input
+          type="url"
+          placeholder="https://…"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+        />
+      </label>
+      <label className={'file-drop' + (file ? ' has-file' : '')}>
+        {file ? <FileText size={17} /> : <Plus size={17} />}
+        <span>
+          {file ? file.name : 'Attach a paper or document'}
+          {!file && <small>PDF, Markdown or text · up to 20 MB</small>}
+        </span>
+        <input
+          type="file"
+          accept=".pdf,.txt,.md,.tex"
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      {!connected && (
+        <p className="inline-notice">
+          Codex is not connected yet. You can save the session now and prepare it after signing in
+          under Preferences.
+        </p>
+      )}
+      <footer className="form-footer">
+        <button disabled={busy} className="primary" type="submit">
+          {busy ? 'Opening your session…' : 'Create session'}
+          <ArrowRight size={17} />
+        </button>
+      </footer>
+    </form>
+  );
+  return inline ? (
+    <div className="inline-session">{form}</div>
+  ) : (
+    <Modal title="Plan a session" onClose={onClose} wide>
+      {form}
     </Modal>
   );
 }

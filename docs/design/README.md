@@ -26,13 +26,17 @@ The independent screenshot-only baseline critic scored **6.3/10**. Its three hig
 
 ## 04 · Focused desk
 
-[Behavior, model metadata, and verification](04-focus.md). [Empty desk](checkpoints/04-focused-desk/01-empty-desk.png), [new session](checkpoints/04-focused-desk/02-new-session.png), [brief](checkpoints/04-focused-desk/03-session-brief.png), [reading + writing](checkpoints/04-focused-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/04-focused-desk/05-source-and-writing.png), [mobile](checkpoints/04-focused-desk/06-mobile-brief.png). Production build, six captures, and six browser tests passed. The fresh independent review is pending.
+[Behavior, model metadata, and verification](04-focus.md). [Empty desk](checkpoints/04-focused-desk/01-empty-desk.png), [new session](checkpoints/04-focused-desk/02-new-session.png), [brief](checkpoints/04-focused-desk/03-session-brief.png), [reading + writing](checkpoints/04-focused-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/04-focused-desk/05-source-and-writing.png), [mobile](checkpoints/04-focused-desk/06-mobile-brief.png). Production build, six captures, and six browser tests passed. Commit: `2c48e0c` (pushed). Independent review: **7.0/10**; [exact report](04-focus.md#fourth-independent-review--exact-report).
+
+## 05 · One surface
+
+[Structural response and capture correction](05-entry.md). [Empty form](checkpoints/05-one-surface/01-empty-desk.png), [filled form](checkpoints/05-one-surface/02-new-session.png), [brief](checkpoints/05-one-surface/03-session-brief.png), [reading + writing](checkpoints/05-one-surface/04-reading-and-writing.png), [PDF + writing](checkpoints/05-one-surface/05-source-and-writing.png), [mobile](checkpoints/05-one-surface/06-mobile-brief.png). Production build, six captures, six browser tests, formatting, and whitespace checks passed. Independent review: **6.8/10**; [exact report and validation](05-entry.md#fifth-independent-review--exact-report). Reviews have plateaued; the next pass will use one coherent direction rather than further isolated cuts.
 
 ## Ordered design procedures
 
 1. **Random discovery:** complete; [recovery seed and six directions](01-discover.md#1-random-discovery). The seed never appears in the interface.
 2. **Ambitious brief:** complete; [editorial research desk brief](01-discover.md#2-ambitious-brief), based on the user’s chosen taste.
-3. **Independent critique:** in progress; each critic receives only screenshots and the same fixed visual critique prompt. Critics do not read implementation, previous critiques, or a target score.
+3. **Independent critique:** in progress through five fresh reviews; each critic receives only screenshots and the same fixed visual critique prompt. Critics do not read implementation, previous critiques, or a target score.
 4. **Image assessment:** complete; [assessed and omitted](03-deliver.md#4-image-assessment). Decorative raster imagery would reduce space for sources and work; no model substitution was made.
 5. **Motion assessment:** complete after the image assessment; [useful feedback only](03-deliver.md#5-video-and-motion-assessment), with reduced motion preserved.
 6. **Subtraction:** complete; one workspace chrome row and persistent writing scaffolding removed. See [delivery notes](03-deliver.md#6-subtraction).

@@ -62,12 +62,10 @@ try {
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.welcome')).toBeVisible();
   await capture('01-empty-desk');
-  await page.getByRole('button', { name: 'Begin a learning session' }).click();
   await page
-    .getByRole('dialog')
-    .getByRole('textbox', { name: 'Your question' })
+    .getByRole('textbox', { name: 'Your question', exact: true })
     .fill('Understand sample means and investigate what independence contributes.');
-  await page.getByRole('dialog').locator('input[type=file]').setInputFiles({
+  await page.locator('.inline-session input[type=file]').setInputFiles({
     name: 'sampling.pdf',
     mimeType: 'application/pdf',
     buffer: annotatedPdf(),
@@ -80,12 +78,17 @@ try {
   await page.getByRole('button', { name: 'Prepare this activity' }).click();
   await expect(page.locator('.reading-excerpt blockquote')).toContainText('A sample mean combines');
   await page.getByRole('tab', { name: 'Work', exact: true }).click();
-  await page
-    .getByRole('textbox', { name: 'Written response' })
-    .fill(
-      'A sample mean combines independent observations. To understand its uncertainty, I first expand the variance of the sum.\n\nIndependence makes the covariance terms vanish. If observations share a common source of noise, increasing the sample size may not remove that uncertainty.',
-    );
+  const response = page.getByRole('textbox', { name: 'Written response' });
+  await response.fill(
+    'A sample mean combines independent observations. To understand its uncertainty, I first expand the variance of the sum.',
+  );
+  await response.press('Enter');
+  await page.keyboard.insertText(
+    'Independence makes the covariance terms vanish. If observations share a common source of noise, increasing the sample size may not remove that uncertainty.',
+  );
+  await expect(response.locator('p')).toHaveCount(2);
   await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Split right', exact: true }).click();
   await expect(page.locator('.dv-groupview')).toHaveCount(2);
   await capture('04-reading-and-writing');
@@ -103,6 +106,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   if (!(await page.locator('.app').evaluate((node) => node.classList.contains('sidebar-hidden'))))
     await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Reset workspace layout' }).click();
   await expect(page.getByRole('combobox', { name: 'Current view', exact: true })).toHaveValue(
     'brief',
