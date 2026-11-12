@@ -8,7 +8,9 @@ This is a chronological review trail for the workspace redesign. All screenshots
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | 00 · Baseline | [Empty desk](checkpoints/00-baseline/01-empty-desk.png), [new session](checkpoints/00-baseline/02-new-session.png), [brief](checkpoints/00-baseline/03-session-brief.png), [reading + writing](checkpoints/00-baseline/04-reading-and-writing.png), [PDF + writing](checkpoints/00-baseline/05-source-and-writing.png), [mobile](checkpoints/00-baseline/06-mobile-brief.png) | Production build; six captures; no browser exceptions; mobile document has no horizontal overflow |
 
-The baseline commit contains the capture script and these images, with no interface changes. A fresh screenshot-only critic is reviewing the baseline independently.
+Baseline commit: `7e5f33d`. The first empty-desk capture exposed a harness race: clicking “Decide later” returned before its asynchronous save removed onboarding. That imperfect image is retained. [Corrected empty desk](checkpoints/00b-capture-correction/01-empty-desk.png) and [corrected brief](checkpoints/00b-capture-correction/03-session-brief.png) wait for the dialog to close. All six states were recaptured under `00b-capture-correction`, with no interface changes.
+
+The independent screenshot-only baseline critic scored **6.3/10**. Its three highest-priority findings were duplicated navigation, nested editor shells, and pervasive explanatory microcopy. It also noted weak active-tab contrast, pale tiny labels, a mechanically spread brief, and an assembled-looking monogram. These findings are recorded as evidence, not as a numerical target for subsequent critics.
 
 ## Ordered design procedures
 

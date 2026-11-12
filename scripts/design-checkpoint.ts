@@ -58,6 +58,7 @@ try {
   };
   await page.goto(baseURL);
   await page.getByRole('button', { name: 'Decide later' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.welcome')).toBeVisible();
   await capture('01-empty-desk');
   await page.getByRole('button', { name: 'Begin a learning session' }).click();
