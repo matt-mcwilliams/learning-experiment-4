@@ -211,8 +211,6 @@ export default function DocumentEditor({
         <span>
           {state.words.toLocaleString()} {state.words === 1 ? 'word' : 'words'}
         </span>
-        <span>{state.characters.toLocaleString()} characters</span>
-        <span>Changes save automatically</span>
       </footer>
       {link !== null && (
         <Modal title="Insert a link" onClose={() => setLink(null)}>

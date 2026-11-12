@@ -144,12 +144,14 @@ export default function Workspace({
           {detail.plan ? (
             <>
               <div className="brief-intro">
-                <span className="eyebrow">SESSION BRIEF · {detail.hours} HOURS</span>
+                <span className="eyebrow">
+                  Session brief · {detail.hours} {detail.hours === 1 ? 'hour' : 'hours'}
+                </span>
                 <h2 className="brief-title">{detail.title}</h2>
                 <Markdown>{detail.plan.introduction}</Markdown>
               </div>
               <div className="objectives">
-                <h2>What you should be able to defend</h2>
+                <h2>What to establish</h2>
                 {detail.plan.objectives.map((o, i) => (
                   <p key={o}>
                     <span>{String(i + 1).padStart(2, '0')}</span>
@@ -159,9 +161,7 @@ export default function Workspace({
               </div>
               {!!detail.plan.prerequisites.length && (
                 <details className="prerequisites">
-                  <summary>
-                    Useful foundations <span>Advice, never a gate</span>
-                  </summary>
+                  <summary>Optional foundations</summary>
                   {detail.plan.prerequisites.map((p) => (
                     <div key={p.concept}>
                       <h4>{p.concept}</h4>
@@ -172,8 +172,7 @@ export default function Workspace({
                 </details>
               )}
               <div className="route-heading">
-                <h2>A route through the ideas</h2>
-                <span>Materials are prepared as you approach them.</span>
+                <h2>Activities</h2>
               </div>
               <div className="route-list">
                 {detail.activities.map((a, i) => (
@@ -200,9 +199,8 @@ export default function Workspace({
                 <SessionSynthesis completion={detail.completion} onNew={onNew} />
               ) : (
                 <div className="completion-invite">
-                  <span>When you can defend what you've learned.</span>
                   <button disabled={locked} className="secondary" onClick={() => setFinish(true)}>
-                    Conclude this session
+                    Conclude session
                     <ArrowRight size={15} />
                   </button>
                 </div>
@@ -362,7 +360,6 @@ export default function Workspace({
           <div className="conversation" aria-live="polite">
             {!detail.messages.length && (
               <div className="tutor-empty">
-                <span className="tutor-star">✳︎</span>
                 <h3>Keep the question open.</h3>
                 <p>Ask about a passage, test an argument, or request just enough of a hint.</p>
                 <button
@@ -680,25 +677,27 @@ function ActivityWork({
       </div>
       {closed && <p className="closed-notice">Closed book · Sources, notes and AI are hidden.</p>}
       <div className="editor-toolbar">
-        <div className="segmented">
-          <button
-            className={workTab === 'response' ? 'active' : ''}
-            onClick={() => setWorkTab('response')}
-          >
-            Response
-          </button>
-          <button className={workTab === 'code' ? 'active' : ''} onClick={() => setWorkTab('code')}>
-            Python workspace
-          </button>
-        </div>
+        <select
+          className="work-kind-select"
+          aria-label="Work format"
+          value={workTab}
+          onChange={(event) => setWorkTab(event.target.value as 'response' | 'code')}
+        >
+          <option value="response">Written response</option>
+          <option value="code">Python workspace</option>
+        </select>
         <div>
           <span className="save-state" role="status">
             {status === 'Saved' && <Check size={13} />} {status}
           </span>
           {workTab === 'response' && (
-            <button className="text-button" onClick={() => setPreview(!preview)}>
-              {preview ? 'Return to document' : 'Reading view'}
-              <Eye size={13} />
+            <button
+              className="icon-button"
+              aria-label={preview ? 'Return to document' : 'Reading view'}
+              title={preview ? 'Return to document' : 'Reading view'}
+              onClick={() => setPreview(!preview)}
+            >
+              <Eye size={15} />
             </button>
           )}
         </div>
@@ -720,42 +719,40 @@ function ActivityWork({
           )}
         </Suspense>
       </div>
-      <div className="editor-foot">
-        <span>
-          {workTab === 'response'
-            ? 'Rich text · Use the equation button for mathematics'
-            : 'Python standard library · 8 CPU seconds · 768 MB · No network'}
-        </span>
-        {workTab === 'code' && (
-          <button
-            className="secondary"
-            disabled={computing || !sandbox || !code.trim()}
-            onClick={async () => {
-              setComputing(true);
-              try {
-                await save();
-                await api(`/sessions/${detail.id}/runs`, 'POST', {
-                  activityId: activity.id,
-                  kind: 'project',
-                  code,
-                  seed: 42,
-                  config: {},
-                  hypothesis: '',
-                  prediction: '',
-                });
-                await onUpdate();
-              } catch (e) {
-                report((e as Error).message);
-              } finally {
-                setComputing(false);
-              }
-            }}
-          >
-            <Play size={14} />
-            {computing ? 'Running…' : 'Run code'}
-          </button>
-        )}
-      </div>
+      {workTab === 'code' && (
+        <div className="editor-foot">
+          <span>Python standard library · 8 CPU seconds · 768 MB · No network</span>
+          {workTab === 'code' && (
+            <button
+              className="secondary"
+              disabled={computing || !sandbox || !code.trim()}
+              onClick={async () => {
+                setComputing(true);
+                try {
+                  await save();
+                  await api(`/sessions/${detail.id}/runs`, 'POST', {
+                    activityId: activity.id,
+                    kind: 'project',
+                    code,
+                    seed: 42,
+                    config: {},
+                    hypothesis: '',
+                    prediction: '',
+                  });
+                  await onUpdate();
+                } catch (e) {
+                  report((e as Error).message);
+                } finally {
+                  setComputing(false);
+                }
+              }}
+            >
+              <Play size={14} />
+              {computing ? 'Running…' : 'Run code'}
+            </button>
+          )}
+        </div>
+      )}
       {lastRun && workTab === 'code' && (
         <Suspense fallback={<Loading />}>
           <Output run={lastRun} />
@@ -772,52 +769,54 @@ function ActivityWork({
           {running ? 'Saving submission…' : 'Submit for critique'}
           <ArrowRight size={16} />
         </button>
-        <span>Saved as an immutable revision. Your draft stays editable.</span>
       </div>
-      {!closed && material.hints.length > 0 && (
-        <div className="hint-section">
-          <button
-            disabled={hints >= material.hints.length}
-            className="text-button"
-            onClick={() => setHints(hints + 1)}
-          >
-            <HelpCircle size={15} />
-            {hints ? 'One more hint' : 'A little scaffolding'}{' '}
-            <span>
-              {hints}/{material.hints.length}
-            </span>
-          </button>
-          {material.hints.slice(0, hints).map((hint, i) => (
-            <div key={i} className="hint">
-              <span className="eyebrow">HINT {i + 1}</span>
-              <Markdown>{hint}</Markdown>
-            </div>
-          ))}
-        </div>
-      )}
-      <button
-        className="text-button mark-done"
-        onClick={async () => {
-          try {
-            await save();
-            const d = await onUpdate();
-            const a = d.activities.find((a) => a.id === activity.id)!;
-            await api(`/sessions/${detail.id}/activities/${activity.id}`, 'PATCH', {
-              draft,
-              code,
-              revision: a.revision,
-              state: activity.state === 'done' ? 'ready' : 'done',
-            });
-            await onUpdate();
-          } catch (e) {
-            report((e as Error).message);
-          }
-        }}
-      >
-        <Check size={15} />
-        {activity.state === 'done' ? 'Reopen activity' : 'Mark activity done'}
-        <span>Personal marker, not a mastery claim</span>
-      </button>
+      <details className="work-options">
+        <summary>More actions</summary>
+        {!closed && material.hints.length > 0 && (
+          <div className="hint-section">
+            <button
+              disabled={hints >= material.hints.length}
+              className="text-button"
+              onClick={() => setHints(hints + 1)}
+            >
+              <HelpCircle size={15} />
+              {hints ? 'One more hint' : 'Show a hint'}{' '}
+              <span>
+                {hints}/{material.hints.length}
+              </span>
+            </button>
+            {material.hints.slice(0, hints).map((hint, i) => (
+              <div key={i} className="hint">
+                <span className="eyebrow">HINT {i + 1}</span>
+                <Markdown>{hint}</Markdown>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          className="text-button mark-done"
+          title="Marks progress only; does not assess mastery"
+          onClick={async () => {
+            try {
+              await save();
+              const d = await onUpdate();
+              const a = d.activities.find((a) => a.id === activity.id)!;
+              await api(`/sessions/${detail.id}/activities/${activity.id}`, 'PATCH', {
+                draft,
+                code,
+                revision: a.revision,
+                state: activity.state === 'done' ? 'ready' : 'done',
+              });
+              await onUpdate();
+            } catch (e) {
+              report((e as Error).message);
+            }
+          }}
+        >
+          <Check size={15} />
+          {activity.state === 'done' ? 'Reopen activity' : 'Mark activity done'}
+        </button>
+      </details>
     </div>
   );
 }

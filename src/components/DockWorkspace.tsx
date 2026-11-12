@@ -12,6 +12,7 @@ import {
   type DockviewApi,
   type IDockviewPanelProps,
   type IDockviewPanelHeaderProps,
+  type IDockviewHeaderActionsProps,
   type DockviewReadyEvent,
 } from 'dockview-react';
 import { Columns2, Rows2, RotateCcw, Plus } from 'lucide-react';
@@ -55,6 +56,23 @@ function TabHeader(props: IDockviewPanelHeaderProps) {
     </div>
   );
 }
+const HeaderControlsContext = createContext<ReactNode>(null);
+function HeaderControls({ isGroupActive }: IDockviewHeaderActionsProps) {
+  const controls = useContext(HeaderControlsContext);
+  return isGroupActive ? controls : null;
+}
+function HeaderMargin({ containerApi, group }: IDockviewHeaderActionsProps) {
+  return containerApi.groups[0]?.id === group.id ? <span className="header-margin" /> : null;
+}
+function EmptyWorkspace() {
+  const controls = useContext(HeaderControlsContext);
+  return (
+    <div className="empty-workspace">
+      <p>Choose a view to keep working.</p>
+      {controls}
+    </div>
+  );
+}
 const components = { workspace: View };
 export default function DockWorkspace({
   sessionId,
@@ -76,7 +94,8 @@ export default function DockWorkspace({
   const dock = useRef<DockviewApi | null>(null),
     timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     [available, setAvailable] = useState(false),
-    [menu, setMenu] = useState(false);
+    [menu, setMenu] = useState(false),
+    [activeTab, setActiveTab] = useState<WorkspaceTab>('brief');
   const key = 'margin-layout-v1-' + sessionId;
   const saveCallback = useRef(() => {});
   const open = (tab: WorkspaceTab) => {
@@ -146,7 +165,11 @@ export default function DockWorkspace({
     if (!restored || !d.panels.length) defaults(d);
     for (const p of [...d.panels]) if (!allowed.includes(p.id as WorkspaceTab)) d.removePanel(p);
     d.onDidLayoutChange(() => saveCallback.current());
-    d.onDidActivePanelChange(() => saveCallback.current());
+    setActiveTab((d.activePanel?.id as WorkspaceTab) ?? 'brief');
+    d.onDidActivePanelChange(({ panel }) => {
+      if (panel) setActiveTab(panel.id as WorkspaceTab);
+      saveCallback.current();
+    });
     d.onDidActiveGroupChange(() => saveCallback.current());
     setAvailable(true);
   };
@@ -221,84 +244,102 @@ export default function DockWorkspace({
         });
     }
   };
+  const controls = (
+    <div className="layout-controls">
+      <select
+        className="mobile-view-select"
+        aria-label="Current view"
+        value={activeTab}
+        onChange={(event) => open(event.target.value as WorkspaceTab)}
+      >
+        {allowed.map((tab) => (
+          <option key={tab} value={tab}>
+            {titles[tab]}
+          </option>
+        ))}
+      </select>
+      <div>
+        <button
+          className="icon-button views-button"
+          aria-label="Views: open a tab"
+          aria-expanded={menu}
+          title="Open a tab"
+          onClick={() => setMenu(!menu)}
+        >
+          <Plus size={16} />
+          <span>Views</span>
+        </button>
+        <button
+          className="icon-button"
+          aria-label="Split right"
+          title="Split right"
+          disabled={!available}
+          onClick={() => split('right')}
+        >
+          <Columns2 size={16} />
+        </button>
+        <button
+          className="icon-button"
+          aria-label="Split below"
+          title="Split below"
+          disabled={!available}
+          onClick={() => split('below')}
+        >
+          <Rows2 size={16} />
+        </button>
+        <button
+          className="icon-button"
+          aria-label="Close active tab"
+          title="Close active tab"
+          onClick={() => dock.current?.activePanel?.api.close()}
+        >
+          ×
+        </button>
+        <button
+          className="icon-button"
+          aria-label="Reset workspace layout"
+          title="Reset layout"
+          onClick={() => {
+            if (dock.current) defaults(dock.current);
+          }}
+        >
+          <RotateCcw size={15} />
+        </button>
+      </div>
+      {menu && (
+        <div className="tab-menu">
+          {allowed.map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                open(t);
+                setMenu(false);
+              }}
+            >
+              {titles[t]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
   return (
     <div className="dock-workspace">
-      <div className="layout-controls">
-        <span>Workspace</span>
-        <div>
-          <button
-            className="icon-button views-button"
-            aria-label="Views: open a tab"
-            aria-expanded={menu}
-            title="Open a tab"
-            onClick={() => setMenu(!menu)}
-          >
-            <Plus size={16} />
-            <span>Views</span>
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Split right"
-            title="Split right"
-            disabled={!available}
-            onClick={() => split('right')}
-          >
-            <Columns2 size={16} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Split below"
-            title="Split below"
-            disabled={!available}
-            onClick={() => split('below')}
-          >
-            <Rows2 size={16} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Close active tab"
-            title="Close active tab"
-            onClick={() => dock.current?.activePanel?.api.close()}
-          >
-            ×
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Reset workspace layout"
-            title="Reset layout"
-            onClick={() => {
-              if (dock.current) defaults(dock.current);
-            }}
-          >
-            <RotateCcw size={15} />
-          </button>
-        </div>
-        {menu && (
-          <div className="tab-menu">
-            {allowed.map((t) => (
-              <button
-                key={t}
-                onClick={() => {
-                  open(t);
-                  setMenu(false);
-                }}
-              >
-                {titles[t]}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <ViewContext.Provider value={render}>
-        <DockviewReact
-          className="dockview-theme-light margin-dock"
-          components={components}
-          defaultTabComponent={TabHeader}
-          onReady={ready}
-          disableFloatingGroups
-          popoutUrl={undefined}
-        />
-      </ViewContext.Provider>
+      <HeaderControlsContext.Provider value={controls}>
+        <ViewContext.Provider value={render}>
+          <DockviewReact
+            className="dockview-theme-light margin-dock"
+            components={components}
+            defaultTabComponent={TabHeader}
+            rightHeaderActionsComponent={HeaderControls}
+            prefixHeaderActionsComponent={HeaderMargin}
+            watermarkComponent={EmptyWorkspace}
+            onReady={ready}
+            disableFloatingGroups
+            popoutUrl={undefined}
+          />
+        </ViewContext.Provider>
+      </HeaderControlsContext.Provider>
     </div>
   );
 }

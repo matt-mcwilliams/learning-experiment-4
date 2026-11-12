@@ -18,18 +18,22 @@ The independent screenshot-only baseline critic scored **6.3/10**. Its three hig
 
 ## 02 · Editorial discipline
 
-[Exact independent review and response](02-critique.md). [Empty desk](checkpoints/02-editorial-discipline/01-empty-desk.png), [new session](checkpoints/02-editorial-discipline/02-new-session.png), [brief](checkpoints/02-editorial-discipline/03-session-brief.png), [reading + writing](checkpoints/02-editorial-discipline/04-reading-and-writing.png), [PDF + writing](checkpoints/02-editorial-discipline/05-source-and-writing.png), [mobile](checkpoints/02-editorial-discipline/06-mobile-brief.png).
+[Exact independent review and response](02-critique.md). [Empty desk](checkpoints/02-editorial-discipline/01-empty-desk.png), [new session](checkpoints/02-editorial-discipline/02-new-session.png), [brief](checkpoints/02-editorial-discipline/03-session-brief.png), [reading + writing](checkpoints/02-editorial-discipline/04-reading-and-writing.png), [PDF + writing](checkpoints/02-editorial-discipline/05-source-and-writing.png), [mobile](checkpoints/02-editorial-discipline/06-mobile-brief.png). Commit: `f31b625` (pushed). Build, 15 core tests (0 skipped), six browser tests, formatting, and patch checks passed. Independent review: **6.6/10**, not yet converged.
+
+## 03 · Working edition
+
+[Media assessments and ordered delivery passes](03-deliver.md). [Empty desk](checkpoints/03-working-edition/01-empty-desk.png), [new session](checkpoints/03-working-edition/02-new-session.png), [brief](checkpoints/03-working-edition/03-session-brief.png), [reading + writing](checkpoints/03-working-edition/04-reading-and-writing.png), [PDF + writing](checkpoints/03-working-edition/05-source-and-writing.png), [mobile](checkpoints/03-working-edition/06-mobile-brief.png). All six captures passed and were visually inspected. A new independent screenshot review is running.
 
 ## Ordered design procedures
 
 1. **Random discovery:** complete; [recovery seed and six directions](01-discover.md#1-random-discovery). The seed never appears in the interface.
 2. **Ambitious brief:** complete; [editorial research desk brief](01-discover.md#2-ambitious-brief), based on the user’s chosen taste.
 3. **Independent critique:** in progress; each critic receives only screenshots and the same fixed visual critique prompt. Critics do not read implementation, previous critiques, or a target score.
-4. **Image assessment:** pending after the first refinement.
-5. **Motion assessment:** pending after the image assessment.
-6. **Subtraction:** pending.
-7. **AI-tells audit:** pending.
-8. **Copy edit:** pending.
+4. **Image assessment:** complete; [assessed and omitted](03-deliver.md#4-image-assessment). Decorative raster imagery would reduce space for sources and work; no model substitution was made.
+5. **Motion assessment:** complete after the image assessment; [useful feedback only](03-deliver.md#5-video-and-motion-assessment), with reduced motion preserved.
+6. **Subtraction:** complete; one workspace chrome row and persistent writing scaffolding removed. See [delivery notes](03-deliver.md#6-subtraction).
+7. **AI-tells audit:** complete; native selectors, plain attachment rows, fewer ornaments. See [audit](03-deliver.md#7-ai-tells-audit).
+8. **Copy edit:** complete; [concise editorial pass](03-deliver.md#8-editorial-copy-pass), preserving source and learning content.
 
 ## Repeat a capture
 

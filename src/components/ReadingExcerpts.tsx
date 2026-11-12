@@ -38,10 +38,7 @@ export default function ReadingExcerpts({
   return (
     <section className="reading-excerpts">
       <header>
-        <div>
-          <span className="eyebrow">AT THE SOURCE</span>
-          <h3>Read the passage. Then work with the idea.</h3>
-        </div>
+        <h3>Source passage</h3>
         {!formatted && (
           <button className="secondary" disabled={busy} onClick={onFormat}>
             <Sparkles size={14} />

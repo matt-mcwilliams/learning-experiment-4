@@ -64,7 +64,7 @@ try {
   await page.getByRole('button', { name: 'Begin a learning session' }).click();
   await page
     .getByRole('dialog')
-    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .getByRole('textbox', { name: 'Your question' })
     .fill('Understand sample means and investigate what independence contributes.');
   await page.getByRole('dialog').locator('input[type=file]').setInputFiles({
     name: 'sampling.pdf',
@@ -102,6 +102,9 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Toggle sidebar' }).click();
   await page.getByRole('button', { name: 'Reset workspace layout' }).click();
+  await expect(page.getByRole('combobox', { name: 'Current view', exact: true })).toHaveValue(
+    'brief',
+  );
   await capture('06-mobile-brief');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

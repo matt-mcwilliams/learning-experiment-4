@@ -9,16 +9,16 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await page.goto('/');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: 'Decide later' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Make room for a difficult idea.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Start with a question.' })).toBeVisible();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.welcome-cta')).toHaveCSS('transition-duration', '0s');
   await page.screenshot({ path: 'test-results/welcome-desktop.png', fullPage: true });
   await page
-    .getByRole('textbox', { name: 'Question to explore' })
+    .getByRole('textbox', { name: 'Your question', exact: true })
     .fill('Understand sample means and investigate what independence contributes.');
   await page.getByRole('button', { name: 'Begin a learning session' }).click();
   await expect(
-    page.getByRole('dialog').getByRole('textbox', { name: 'YOUR QUESTION' }),
+    page.getByRole('dialog').getByRole('textbox', { name: 'Your question' }),
   ).toHaveValue('Understand sample means and investigate what independence contributes.');
   await page
     .getByRole('dialog')
@@ -33,9 +33,7 @@ test('start a document session, autosave mathematical work, critique, defend, co
       ),
     });
   await page.getByRole('button', { name: 'Create session', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'What you should be able to defend', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What to establish', exact: true })).toBeVisible();
   await expect(
     page.locator('.activity-nav').filter({ hasText: 'Independent reasoning' }),
   ).toBeVisible();
@@ -74,6 +72,7 @@ test('start a document session, autosave mathematical work, critique, defend, co
   );
   await page.getByRole('button', { name: 'Reading view', exact: true }).click();
   await expect(page.locator('.response-preview .katex')).toBeVisible();
+  await page.locator('.work-options > summary').click();
   await page.getByRole('button', { name: 'Mark activity done' }).click();
   await page.getByRole('button', { name: 'Return to document', exact: true }).click();
   await page
@@ -96,7 +95,7 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await expect(page.locator('.message.assistant')).toContainText('covariance terms');
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('tab', { name: 'Session brief' }).click();
-  await page.getByRole('button', { name: 'Conclude this session' }).click();
+  await page.getByRole('button', { name: 'Conclude session' }).click();
   await page.getByRole('button', { name: 'Synthesize & save' }).click();
   await expect(page.getByRole('heading', { name: 'What the work leaves you with.' })).toBeVisible();
   await page.getByRole('button', { name: /Possible directions/ }).click();
@@ -122,13 +121,13 @@ test('generated apparatus requires a prediction, collects reproducible real tria
   await page.getByRole('button', { name: /New session/ }).click();
   await page
     .getByRole('dialog')
-    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .getByRole('textbox', { name: 'Your question' })
     .fill('Investigate how sample size changes Monte Carlo uncertainty.');
-  await page.getByRole('button', { name: 'Run an investigation' }).click();
+  await page
+    .getByRole('combobox', { name: 'Session type', exact: true })
+    .selectOption('investigation');
   await page.getByRole('button', { name: 'Create session', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'What you should be able to defend', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What to establish', exact: true })).toBeVisible();
   await page.locator('.activity-nav').filter({ hasText: 'A reproducible investigation' }).click();
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('button', { name: 'Prepare apparatus' }).click();
@@ -210,7 +209,7 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.getByRole('button', { name: /New session/ }).click();
   await page
     .getByRole('dialog')
-    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .getByRole('textbox', { name: 'Your question' })
     .fill('Read and annotate a paper about independent sampling.');
   await page
     .getByRole('dialog')
@@ -303,6 +302,19 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.getByRole('button', { name: 'Views: open a tab', exact: true }).click();
   await page.locator('.tab-menu').getByRole('button', { name: 'AI chat', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
+  while (await page.getByRole('tab').count()) {
+    await page.getByRole('tab').first().click();
+    await page.getByRole('button', { name: 'Close active tab', exact: true }).click();
+  }
+  await expect(page.locator('.empty-workspace')).toBeVisible();
+  await page.getByRole('button', { name: 'Views: open a tab', exact: true }).click();
+  await page.locator('.tab-menu').getByRole('button', { name: 'Notebook', exact: true }).click();
+  await expect(page.locator('.view-notes')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset workspace layout', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('combobox', { name: 'Current view', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Current view', exact: true }).selectOption('read');
+  await expect(page.locator('.view-read .activity-heading')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

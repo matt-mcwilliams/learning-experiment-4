@@ -43,6 +43,7 @@ export default function Sources({
     [quote, setQuote] = useState(''),
     [note, setNote] = useState(''),
     [url, setUrl] = useState(''),
+    [urlOpen, setUrlOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [original, setOriginal] = useState(initialRef ? false : (saved.original ?? false));
   const source = detail.sources.find((s) => s.id === selected) || detail.sources[0];
@@ -139,28 +140,39 @@ export default function Sources({
             }}
           />
         </label>
-      </div>
-      <form
-        className="url-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void addUrl();
-        }}
-      >
-        <Link size={15} />
-        <input
-          aria-label="Public source URL"
-          type="url"
-          required
-          placeholder="Retrieve a public paper or article URL"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button className="text-button" disabled={busy || !url}>
-          Retrieve
-          <Plus size={15} />
+        <button
+          className="text-button source-url-toggle"
+          aria-label="Add a public source URL"
+          aria-expanded={urlOpen}
+          onClick={() => setUrlOpen(!urlOpen)}
+        >
+          <Link size={15} />
+          <span>URL</span>
         </button>
-      </form>
+      </div>
+      {urlOpen && (
+        <form
+          className="url-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void addUrl();
+          }}
+        >
+          <Link size={15} />
+          <input
+            aria-label="Public source URL"
+            type="url"
+            required
+            placeholder="Retrieve a public paper or article URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button className="text-button" disabled={busy || !url}>
+            Retrieve
+            <Plus size={15} />
+          </button>
+        </form>
+      )}
       {source?.mediaType === 'application/pdf' ? (
         <Suspense fallback={<Loading text="Opening the PDF reader…" />}>
           <PdfReader

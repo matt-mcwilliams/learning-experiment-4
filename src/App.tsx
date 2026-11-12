@@ -144,9 +144,7 @@ export default function App() {
           }}
         >
           <span className="brand-mark" aria-hidden="true" />
-          <span>
-            margin<span className="brand-sub">Read. Think. Work it out.</span>
-          </span>
+          <span>margin</span>
         </a>
         <button className="new-button" onClick={() => setNewSession(true)}>
           <Plus size={17} />
@@ -244,17 +242,16 @@ export default function App() {
             </button>
             <span className="topbar-label">
               {page === 'workspace'
-                ? 'THE WORKSPACE'
+                ? 'Workspace'
                 : page === 'portfolio'
-                  ? 'YOUR INTELLECTUAL WORK'
+                  ? 'Portfolio'
                   : page === 'knowledge'
-                    ? 'EVIDENCE, NOT SCORES'
+                    ? 'Knowledge record'
                     : page === 'directions'
-                      ? 'FOLLOW YOUR CURIOSITY'
-                      : 'MAKE IT YOURS'}
+                      ? 'Possible directions'
+                      : 'Preferences'}
             </span>
           </div>
-          <span className="topbar-right">A local research workspace</span>
         </header>
         {error && (
           <div className="error-banner" role="alert">
@@ -279,9 +276,8 @@ export default function App() {
             />
           ) : (
             <div className="welcome">
-              <div className="welcome-overline">YOUR DESK / NO SESSION OPEN</div>
-              <h1>Make room for a difficult idea.</h1>
-              <p>Read the source. Follow a question. Work out your answer.</p>
+              <h1>Start with a question.</h1>
+              <p>Read a paper, work through an idea, or test a prediction.</p>
               <form
                 className="desk-start"
                 onSubmit={(event) => {
@@ -292,12 +288,11 @@ export default function App() {
                 <label htmlFor="desk-question">Your question</label>
                 <textarea
                   id="desk-question"
-                  aria-label="Question to explore"
                   rows={3}
                   value={deskQuestion}
                   onChange={(event) => setDeskQuestion(event.target.value)}
                   maxLength={6000}
-                  placeholder="What are you trying to make sense of?"
+                  placeholder="Write a question or describe a project."
                 />
                 <button className="primary welcome-cta" type="submit">
                   Begin a learning session
@@ -409,18 +404,16 @@ function NewSession({
     [file, setFile] = useState<File | null>(null),
     [url, setUrl] = useState('');
   return (
-    <Modal title="What would you like to understand?" onClose={onClose} wide>
+    <Modal title="Plan a session" onClose={onClose} wide>
       <form
+        className="session-form"
         onSubmit={(e) => {
           e.preventDefault();
           void onCreate({ objective, mode, hours }, file, url);
         }}
       >
-        <p className="form-intro">
-          Bring a question, a paper, or an idea you can't quite let go of.
-        </p>
         <label className="field">
-          YOUR QUESTION
+          Your question
           <textarea
             autoFocus
             required
@@ -429,58 +422,55 @@ function NewSession({
             rows={4}
             value={objective}
             onChange={(e) => setObjective(e.target.value)}
-            placeholder="I want to understand how Bayesian knowledge tracing infers what a learner knows, and test where its assumptions break down…"
+            placeholder="What would you like to understand or investigate?"
           />
         </label>
-        <div className="mode-grid">
-          {[
-            { key: 'paper', label: 'Study a paper', icon: FileText },
-            { key: 'concept', label: 'Understand an idea', icon: BookOpen },
-            { key: 'investigation', label: 'Run an investigation', icon: FlaskConical },
-            { key: 'project', label: 'Build & defend', icon: Code2 },
-          ].map(({ key, label, icon: Icon }) => (
-            <button
-              type="button"
-              key={key}
-              className={mode === key ? 'chosen' : ''}
-              onClick={() => setMode(key)}
-            >
-              <Icon size={19} />
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="form-row">
+        <div className="form-row session-options">
           <label className="field">
-            TIME TO EXPLORE
-            <select value={hours} onChange={(e) => setHours(Number(e.target.value))}>
-              {[1, 2, 3, 4, 6, 8, 10].map((h) => (
-                <option key={h} value={h}>
-                  About {h} {h === 1 ? 'hour' : 'hours'}
+            Session type
+            <select
+              aria-label="Session type"
+              value={mode}
+              onChange={(event) => setMode(event.target.value)}
+            >
+              <option value="paper">Study a paper</option>
+              <option value="concept">Understand an idea</option>
+              <option value="investigation">Run an investigation</option>
+              <option value="project">Build & defend</option>
+            </select>
+          </label>
+          <label className="field">
+            Time budget
+            <select value={hours} onChange={(event) => setHours(Number(event.target.value))}>
+              {[1, 2, 3, 4, 6, 8, 10].map((hours) => (
+                <option key={hours} value={hours}>
+                  About {hours} {hours === 1 ? 'hour' : 'hours'}
                 </option>
               ))}
             </select>
           </label>
-          <label className="field">
-            A SOURCE, IF YOU HAVE ONE
-            <input
-              type="url"
-              placeholder="https://… (optional)"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </label>
         </div>
-        <label className="file-drop">
-          <Plus size={17} />
+        <label className="field source-url-field">
+          <span>
+            Source URL <small>Optional</small>
+          </span>
+          <input
+            type="url"
+            placeholder="https://…"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+          />
+        </label>
+        <label className={'file-drop' + (file ? ' has-file' : '')}>
+          {file ? <FileText size={17} /> : <Plus size={17} />}
           <span>
             {file ? file.name : 'Attach a paper or document'}
-            <small>PDF, Markdown or text · up to 20 MB</small>
+            {!file && <small>PDF, Markdown or text · up to 20 MB</small>}
           </span>
           <input
             type="file"
             accept=".pdf,.txt,.md,.tex"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>
         {!connected && (
@@ -490,7 +480,6 @@ function NewSession({
           </p>
         )}
         <footer className="form-footer">
-          <span>The plan comes first. Materials develop as you go.</span>
           <button disabled={busy} className="primary" type="submit">
             {busy ? 'Opening your session…' : 'Create session'}
             <ArrowRight size={17} />
