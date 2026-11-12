@@ -48,6 +48,7 @@ try {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   const capture = async (name: string) => {
+    await page.mouse.move(0, 0);
     await page.evaluate(() => document.fonts.ready);
     await expect(page.getByText('Preparing mathematical text…', { exact: true })).toHaveCount(0);
     await page.screenshot({
@@ -100,7 +101,8 @@ try {
     .toBe(true);
   await capture('05-source-and-writing');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  if (!(await page.locator('.app').evaluate((node) => node.classList.contains('sidebar-hidden'))))
+    await page.getByRole('button', { name: 'Toggle sidebar' }).click();
   await page.getByRole('button', { name: 'Reset workspace layout' }).click();
   await expect(page.getByRole('combobox', { name: 'Current view', exact: true })).toHaveValue(
     'brief',

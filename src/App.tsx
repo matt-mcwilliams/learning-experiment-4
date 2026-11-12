@@ -273,6 +273,7 @@ export default function App() {
               sandbox={boot?.sandbox ?? false}
               agent={agent}
               onNew={() => setNewSession(true)}
+              onFocus={() => setSidebar(false)}
             />
           ) : (
             <div className="welcome">

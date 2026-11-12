@@ -24,11 +24,13 @@ export default function DocumentEditor({
   onChange,
   label = 'Your document',
   minHeight = '380px',
+  showFormatting = true,
 }: {
   value: string;
   onChange: (text: string) => void;
   label?: string;
   minHeight?: string;
+  showFormatting?: boolean;
 }) {
   const latest = useRef(onChange);
   latest.current = onChange;
@@ -99,7 +101,6 @@ export default function DocumentEditor({
                   ? '3'
                   : '0',
             words: e.getText().trim() ? e.getText().trim().split(/\s+/u).length : 0,
-            characters: e.getText().length,
           }
         : null,
   });
@@ -112,7 +113,6 @@ export default function DocumentEditor({
     quote: false,
     heading: '0',
     words: 0,
-    characters: 0,
   };
   if (!editor) return null;
   const button = (title: string, icon: React.ReactNode, run: () => void, pressed?: boolean) => (
@@ -133,77 +133,79 @@ export default function DocumentEditor({
       className="document-editor"
       style={{ '--document-height': minHeight } as React.CSSProperties}
     >
-      <div className="document-formatbar" role="toolbar" aria-label="Document formatting">
-        {button('Undo', <Undo2 size={16} />, () => editor.chain().focus().undo().run())}
-        {button('Redo', <Redo2 size={16} />, () => editor.chain().focus().redo().run())}
-        <span className="toolbar-divider" />
-        <select
-          aria-label="Paragraph style"
-          value={state.heading}
-          onChange={(e) => {
-            const level = Number(e.target.value);
-            if (level)
-              editor
-                .chain()
-                .focus()
-                .setHeading({ level: level as 1 | 2 | 3 })
-                .run();
-            else editor.chain().focus().setParagraph().run();
-          }}
-        >
-          <option value="0">Normal text</option>
-          <option value="1">Heading 1</option>
-          <option value="2">Heading 2</option>
-          <option value="3">Heading 3</option>
-        </select>
-        <span className="toolbar-divider" />
-        {button(
-          'Bold',
-          <Bold size={16} />,
-          () => editor.chain().focus().toggleBold().run(),
-          state.bold,
-        )}
-        {button(
-          'Italic',
-          <Italic size={16} />,
-          () => editor.chain().focus().toggleItalic().run(),
-          state.italic,
-        )}
-        {button(
-          'Strikethrough',
-          <Strikethrough size={16} />,
-          () => editor.chain().focus().toggleStrike().run(),
-          state.strike,
-        )}
-        <span className="toolbar-divider" />
-        {button(
-          'Bulleted list',
-          <List size={17} />,
-          () => editor.chain().focus().toggleBulletList().run(),
-          state.bullet,
-        )}
-        {button(
-          'Numbered list',
-          <ListOrdered size={17} />,
-          () => editor.chain().focus().toggleOrderedList().run(),
-          state.ordered,
-        )}
-        {button(
-          'Block quote',
-          <Quote size={16} />,
-          () => editor.chain().focus().toggleBlockquote().run(),
-          state.quote,
-        )}
-        {button('Insert link', <LinkIcon size={16} />, () =>
-          setLink(editor.getAttributes('link').href || ''),
-        )}
-        {button('Insert equation', <Sigma size={17} />, () =>
-          setFormula({ latex: '', block: false }),
-        )}
-        {button('Horizontal rule', <Minus size={16} />, () =>
-          editor.chain().focus().setHorizontalRule().run(),
-        )}
-      </div>
+      {showFormatting && (
+        <div className="document-formatbar" role="toolbar" aria-label="Document formatting">
+          {button('Undo', <Undo2 size={16} />, () => editor.chain().focus().undo().run())}
+          {button('Redo', <Redo2 size={16} />, () => editor.chain().focus().redo().run())}
+          <span className="toolbar-divider" />
+          <select
+            aria-label="Paragraph style"
+            value={state.heading}
+            onChange={(e) => {
+              const level = Number(e.target.value);
+              if (level)
+                editor
+                  .chain()
+                  .focus()
+                  .setHeading({ level: level as 1 | 2 | 3 })
+                  .run();
+              else editor.chain().focus().setParagraph().run();
+            }}
+          >
+            <option value="0">Normal text</option>
+            <option value="1">Heading 1</option>
+            <option value="2">Heading 2</option>
+            <option value="3">Heading 3</option>
+          </select>
+          <span className="toolbar-divider" />
+          {button(
+            'Bold',
+            <Bold size={16} />,
+            () => editor.chain().focus().toggleBold().run(),
+            state.bold,
+          )}
+          {button(
+            'Italic',
+            <Italic size={16} />,
+            () => editor.chain().focus().toggleItalic().run(),
+            state.italic,
+          )}
+          {button(
+            'Strikethrough',
+            <Strikethrough size={16} />,
+            () => editor.chain().focus().toggleStrike().run(),
+            state.strike,
+          )}
+          <span className="toolbar-divider" />
+          {button(
+            'Bulleted list',
+            <List size={17} />,
+            () => editor.chain().focus().toggleBulletList().run(),
+            state.bullet,
+          )}
+          {button(
+            'Numbered list',
+            <ListOrdered size={17} />,
+            () => editor.chain().focus().toggleOrderedList().run(),
+            state.ordered,
+          )}
+          {button(
+            'Block quote',
+            <Quote size={16} />,
+            () => editor.chain().focus().toggleBlockquote().run(),
+            state.quote,
+          )}
+          {button('Insert link', <LinkIcon size={16} />, () =>
+            setLink(editor.getAttributes('link').href || ''),
+          )}
+          {button('Insert equation', <Sigma size={17} />, () =>
+            setFormula({ latex: '', block: false }),
+          )}
+          {button('Horizontal rule', <Minus size={16} />, () =>
+            editor.chain().focus().setHorizontalRule().run(),
+          )}
+        </div>
+      )}
       <div className="document-desk">
         <EditorContent editor={editor} className="document-paper" />
       </div>

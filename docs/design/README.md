@@ -22,7 +22,11 @@ The independent screenshot-only baseline critic scored **6.3/10**. Its three hig
 
 ## 03 · Working edition
 
-[Media assessments and ordered delivery passes](03-deliver.md). [Empty desk](checkpoints/03-working-edition/01-empty-desk.png), [new session](checkpoints/03-working-edition/02-new-session.png), [brief](checkpoints/03-working-edition/03-session-brief.png), [reading + writing](checkpoints/03-working-edition/04-reading-and-writing.png), [PDF + writing](checkpoints/03-working-edition/05-source-and-writing.png), [mobile](checkpoints/03-working-edition/06-mobile-brief.png). All six captures passed and were visually inspected. A new independent screenshot review is running.
+[Media assessments and ordered delivery passes](03-deliver.md). [Empty desk](checkpoints/03-working-edition/01-empty-desk.png), [new session](checkpoints/03-working-edition/02-new-session.png), [brief](checkpoints/03-working-edition/03-session-brief.png), [reading + writing](checkpoints/03-working-edition/04-reading-and-writing.png), [PDF + writing](checkpoints/03-working-edition/05-source-and-writing.png), [mobile](checkpoints/03-working-edition/06-mobile-brief.png). All six captures passed and were visually inspected. Commit: `7782184` (pushed). Full validation passed. Independent review: **7.1/10**; [exact report](03-deliver.md#third-independent-review--exact-report).
+
+## 04 · Focused desk
+
+[Behavior, model metadata, and verification](04-focus.md). [Empty desk](checkpoints/04-focused-desk/01-empty-desk.png), [new session](checkpoints/04-focused-desk/02-new-session.png), [brief](checkpoints/04-focused-desk/03-session-brief.png), [reading + writing](checkpoints/04-focused-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/04-focused-desk/05-source-and-writing.png), [mobile](checkpoints/04-focused-desk/06-mobile-brief.png). Production build, six captures, and six browser tests passed. The fresh independent review is pending.
 
 ## Ordered design procedures
 

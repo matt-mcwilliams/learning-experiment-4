@@ -58,6 +58,7 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await page.getByRole('button', { name: 'Prepare this activity' }).click();
   await expect(page.locator('.prose .katex-display').first()).toBeVisible();
   await page.getByRole('button', { name: 'Work through the question' }).click();
+  await page.locator('.document-assignment > summary').click();
   await page.getByRole('button', { name: 'Begin closed-book attempt' }).click();
   await expect(page.getByRole('tab', { name: 'PDF & sources', exact: true })).toHaveCount(0);
   await page
@@ -95,6 +96,8 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await expect(page.locator('.message.assistant')).toContainText('covariance terms');
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('tab', { name: 'Session brief' }).click();
+  if (await page.locator('.app').evaluate((node) => node.classList.contains('sidebar-hidden')))
+    await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
   await page.getByRole('button', { name: 'Conclude session' }).click();
   await page.getByRole('button', { name: 'Synthesize & save' }).click();
   await expect(page.getByRole('heading', { name: 'What the work leaves you with.' })).toBeVisible();
@@ -262,6 +265,7 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   const editor = page.getByRole('textbox', { name: 'Written response' });
   await editor.fill('A defensible variance argument needs an explicit independence assumption.');
   await editor.press('Control+a');
+  await page.getByRole('button', { name: 'Format', exact: true }).click();
   await page.getByRole('button', { name: 'Bold', exact: true }).click();
   await expect(editor.locator('strong')).toContainText('A defensible');
   await expect(page.locator('.view-write .document-status')).toContainText('9 words');
@@ -276,6 +280,11 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
   await page.getByRole('button', { name: 'Split right', exact: true }).click();
   await expect(page.locator('.dv-groupview')).toHaveCount(2);
+  await expect(page.locator('.app')).toHaveClass(/sidebar-hidden/);
+  await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
+  await expect(page.locator('.sidebar')).toBeVisible();
+  await expect(page.locator('.dv-groupview')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
   await page.screenshot({ path: 'test-results/split-workspace.png', fullPage: true });
   await page.reload();
   await expect(page.locator('.dv-groupview')).toHaveCount(2);

@@ -55,6 +55,7 @@ export default function Workspace({
   sandbox,
   agent,
   onNew,
+  onFocus,
 }: {
   detail: SessionDetail;
   setDetail: (d: SessionDetail) => void;
@@ -63,6 +64,7 @@ export default function Workspace({
   sandbox: boolean;
   agent: AgentStatus | null;
   onNew: () => void;
+  onFocus: () => void;
 }) {
   const dockHandle = useRef<DockHandle | null>(null);
   const [ask, setAsk] = useState(''),
@@ -484,6 +486,7 @@ export default function Workspace({
         handle={dockHandle}
         render={renderView}
         report={report}
+        onFocus={onFocus}
       />
       {edit && activity && (
         <EditActivity
@@ -611,6 +614,7 @@ function ActivityWork({
 }) {
   const { draft, code, setDraft, setCode, status, save } = useDraft(activity, report);
   const [preview, setPreview] = useState(false),
+    [formatting, setFormatting] = useState(false),
     [hints, setHints] = useState(0),
     [running, setRunning] = useState(false),
     [computing, setComputing] = useState(false),
@@ -640,68 +644,79 @@ function ActivityWork({
   };
   return (
     <div className="activity-work">
-      <div className="work-context">
-        <details className="assignment document-assignment">
-          <summary>
-            Assignment <span>{activity.title}</span>
-          </summary>
-          <Markdown>{material.prompt}</Markdown>
-          <div className="criteria">
-            <h4>Review criteria</h4>
-            {activity.criteria.map((criterion) => (
-              <div key={criterion.name}>
-                <strong>{criterion.name}</strong>
-                <p>{criterion.description}</p>
-              </div>
-            ))}
-          </div>
-        </details>
-        {activity.closedBook && (
-          <button
-            className="text-button practice-toggle"
-            onClick={async () => {
-              try {
-                await save();
-                await onUpdate();
-                if (closed) setSourcesReopened(true);
-                onClosed(!closed);
-              } catch (error) {
-                report((error as Error).message);
-              }
-            }}
+      <div className="work-topline">
+        <div className="work-context">
+          <details className="assignment document-assignment">
+            <summary>
+              Assignment <span>{activity.title}</span>
+            </summary>
+            <Markdown>{material.prompt}</Markdown>
+            <div className="criteria">
+              <h4>Review criteria</h4>
+              {activity.criteria.map((criterion) => (
+                <div key={criterion.name}>
+                  <strong>{criterion.name}</strong>
+                  <p>{criterion.description}</p>
+                </div>
+              ))}
+            </div>
+            {activity.closedBook && (
+              <button
+                className="text-button practice-toggle"
+                onClick={async () => {
+                  try {
+                    await save();
+                    await onUpdate();
+                    if (closed) setSourcesReopened(true);
+                    onClosed(!closed);
+                  } catch (error) {
+                    report((error as Error).message);
+                  }
+                }}
+              >
+                {closed ? <EyeOff size={15} /> : <Eye size={15} />}
+                {closed ? 'Leave closed-book mode' : 'Begin closed-book attempt'}
+              </button>
+            )}
+          </details>
+        </div>
+        <div className="editor-toolbar">
+          <select
+            className="work-kind-select"
+            aria-label="Work format"
+            value={workTab}
+            onChange={(event) => setWorkTab(event.target.value as 'response' | 'code')}
           >
-            {closed ? <EyeOff size={15} /> : <Eye size={15} />}
-            {closed ? 'Leave closed-book mode' : 'Begin closed-book attempt'}
-          </button>
-        )}
-      </div>
-      {closed && <p className="closed-notice">Closed book · Sources, notes and AI are hidden.</p>}
-      <div className="editor-toolbar">
-        <select
-          className="work-kind-select"
-          aria-label="Work format"
-          value={workTab}
-          onChange={(event) => setWorkTab(event.target.value as 'response' | 'code')}
-        >
-          <option value="response">Written response</option>
-          <option value="code">Python workspace</option>
-        </select>
-        <div>
-          <span className="save-state" role="status">
-            {status === 'Saved' && <Check size={13} />} {status}
-          </span>
-          {workTab === 'response' && (
-            <button
-              className="icon-button"
-              aria-label={preview ? 'Return to document' : 'Reading view'}
-              title={preview ? 'Return to document' : 'Reading view'}
-              onClick={() => setPreview(!preview)}
-            >
-              <Eye size={15} />
-            </button>
-          )}
+            <option value="response">Written response</option>
+            <option value="code">Python workspace</option>
+          </select>
+          <div>
+            <span className="save-state" role="status">
+              {status === 'Saved' && <Check size={13} />} {status}
+            </span>
+            {workTab === 'response' && !preview && (
+              <button
+                className="text-button format-toggle"
+                aria-expanded={formatting}
+                onClick={() => setFormatting(!formatting)}
+              >
+                Format
+              </button>
+            )}
+            {workTab === 'response' && (
+              <button
+                className="icon-button"
+                aria-label={preview ? 'Return to document' : 'Reading view'}
+                title={preview ? 'Return to document' : 'Reading view'}
+                onClick={() => setPreview(!preview)}
+              >
+                <Eye size={15} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
+      {closed && <p className="closed-notice">Closed book · Sources, notes and AI are hidden.</p>}
       <div className="editor-surface">
         <Suspense fallback={<Loading />}>
           {workTab === 'response' ? (
@@ -712,7 +727,12 @@ function ActivityWork({
                 </Markdown>
               </div>
             ) : (
-              <DocumentEditor label="Written response" value={draft} onChange={setDraft} />
+              <DocumentEditor
+                label="Written response"
+                value={draft}
+                onChange={setDraft}
+                showFormatting={formatting}
+              />
             )
           ) : (
             <Editor label="Project code" language="python" value={code} onChange={setCode} />
@@ -722,35 +742,33 @@ function ActivityWork({
       {workTab === 'code' && (
         <div className="editor-foot">
           <span>Python standard library · 8 CPU seconds · 768 MB · No network</span>
-          {workTab === 'code' && (
-            <button
-              className="secondary"
-              disabled={computing || !sandbox || !code.trim()}
-              onClick={async () => {
-                setComputing(true);
-                try {
-                  await save();
-                  await api(`/sessions/${detail.id}/runs`, 'POST', {
-                    activityId: activity.id,
-                    kind: 'project',
-                    code,
-                    seed: 42,
-                    config: {},
-                    hypothesis: '',
-                    prediction: '',
-                  });
-                  await onUpdate();
-                } catch (e) {
-                  report((e as Error).message);
-                } finally {
-                  setComputing(false);
-                }
-              }}
-            >
-              <Play size={14} />
-              {computing ? 'Running…' : 'Run code'}
-            </button>
-          )}
+          <button
+            className="secondary"
+            disabled={computing || !sandbox || !code.trim()}
+            onClick={async () => {
+              setComputing(true);
+              try {
+                await save();
+                await api(`/sessions/${detail.id}/runs`, 'POST', {
+                  activityId: activity.id,
+                  kind: 'project',
+                  code,
+                  seed: 42,
+                  config: {},
+                  hypothesis: '',
+                  prediction: '',
+                });
+                await onUpdate();
+              } catch (e) {
+                report((e as Error).message);
+              } finally {
+                setComputing(false);
+              }
+            }}
+          >
+            <Play size={14} />
+            {computing ? 'Running…' : 'Run code'}
+          </button>
         </div>
       )}
       {lastRun && workTab === 'code' && (

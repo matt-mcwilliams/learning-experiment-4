@@ -81,6 +81,7 @@ export default function DockWorkspace({
   handle,
   allowed,
   report,
+  onFocus,
 }: {
   sessionId: string;
   savedLayout?: Record<string, unknown>;
@@ -88,6 +89,7 @@ export default function DockWorkspace({
   handle: RefObject<DockHandle | null>;
   allowed: WorkspaceTab[];
   report: (message: string) => void;
+  onFocus: () => void;
 }) {
   const known = useRef(new Set(allowed)),
     recallLayout = useRef<ReturnType<DockviewApi['toJSON']> | null>(null);
@@ -96,6 +98,9 @@ export default function DockWorkspace({
     [available, setAvailable] = useState(false),
     [menu, setMenu] = useState(false),
     [activeTab, setActiveTab] = useState<WorkspaceTab>('brief');
+  const focus = useRef(onFocus);
+  focus.current = onFocus;
+  const wasSplit = useRef(false);
   const key = 'margin-layout-v1-' + sessionId;
   const saveCallback = useRef(() => {});
   const open = (tab: WorkspaceTab) => {
@@ -164,7 +169,14 @@ export default function DockWorkspace({
     }
     if (!restored || !d.panels.length) defaults(d);
     for (const p of [...d.panels]) if (!allowed.includes(p.id as WorkspaceTab)) d.removePanel(p);
-    d.onDidLayoutChange(() => saveCallback.current());
+    wasSplit.current = d.groups.length > 1;
+    if (wasSplit.current) focus.current();
+    d.onDidLayoutChange(() => {
+      const isSplit = d.groups.length > 1;
+      if (isSplit && !wasSplit.current) focus.current();
+      wasSplit.current = isSplit;
+      saveCallback.current();
+    });
     setActiveTab((d.activePanel?.id as WorkspaceTab) ?? 'brief');
     d.onDidActivePanelChange(({ panel }) => {
       if (panel) setActiveTab(panel.id as WorkspaceTab);

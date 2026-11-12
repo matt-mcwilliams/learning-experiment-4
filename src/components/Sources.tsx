@@ -75,6 +75,7 @@ export default function Sources({
     try {
       const s = await api<Source>(`/sessions/${detail.id}/sources/url`, 'POST', { url });
       setUrl('');
+      setUrlOpen(false);
       await onUpdate();
       setSelected(s.id);
       setPage(1);
@@ -112,44 +113,54 @@ export default function Sources({
     }
     return segments;
   }
+  const sourceControls = (
+    <>
+      <select
+        aria-label="Select source"
+        value={source?.id || ''}
+        onChange={(e) => choose(e.target.value)}
+      >
+        {detail.sources.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.title}
+          </option>
+        ))}
+        {!detail.sources.length && <option>No sources attached</option>}
+      </select>
+      <details className="source-actions">
+        <summary>Sources</summary>
+        <div>
+          <label className="secondary upload-button">
+            <Upload size={15} />
+            {busy ? 'Processing…' : 'Attach source'}
+            <input
+              disabled={busy}
+              type="file"
+              accept=".pdf,.md,.txt,.tex"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void attach(f);
+              }}
+            />
+          </label>
+          <button
+            className="text-button source-url-toggle"
+            aria-label="Add a public source URL"
+            aria-expanded={urlOpen}
+            onClick={() => setUrlOpen(!urlOpen)}
+          >
+            <Link size={15} />
+            <span>URL</span>
+          </button>
+        </div>
+      </details>
+    </>
+  );
   return (
     <div className="source-workspace">
-      <div className="source-toolbar">
-        <select
-          aria-label="Select source"
-          value={source?.id || ''}
-          onChange={(e) => choose(e.target.value)}
-        >
-          {detail.sources.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.title}
-            </option>
-          ))}
-          {!detail.sources.length && <option>No sources attached</option>}
-        </select>
-        <label className="secondary upload-button">
-          <Upload size={15} />
-          {busy ? 'Processing…' : 'Attach source'}
-          <input
-            disabled={busy}
-            type="file"
-            accept=".pdf,.md,.txt,.tex"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void attach(f);
-            }}
-          />
-        </label>
-        <button
-          className="text-button source-url-toggle"
-          aria-label="Add a public source URL"
-          aria-expanded={urlOpen}
-          onClick={() => setUrlOpen(!urlOpen)}
-        >
-          <Link size={15} />
-          <span>URL</span>
-        </button>
-      </div>
+      {source?.mediaType !== 'application/pdf' && (
+        <div className="source-toolbar">{sourceControls}</div>
+      )}
       {urlOpen && (
         <form
           className="url-row"
@@ -178,6 +189,7 @@ export default function Sources({
           <PdfReader
             key={source.id}
             source={source}
+            sourceControls={sourceControls}
             page={page}
             setPage={setPage}
             annotations={detail.annotations}

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Document, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPage, { type PdfNote } from './PdfPage';
@@ -42,6 +42,7 @@ export default function PdfReader({
   report,
   onAsk,
   restorePosition = true,
+  sourceControls,
 }: {
   source: Source;
   annotations: Annotation[];
@@ -51,6 +52,7 @@ export default function PdfReader({
   report: (s: string) => void;
   onAsk: (s: string) => void;
   restorePosition?: boolean;
+  sourceControls?: ReactNode;
 }) {
   const positionKey = 'margin-pdf-view-v1-' + source.id;
   const [initial] = useState(() => {
@@ -255,6 +257,7 @@ export default function PdfReader({
   return (
     <div className="pdf-reader">
       <div className="pdf-toolbar" role="toolbar" aria-label="PDF tools">
+        {sourceControls && <div className="pdf-source-controls">{sourceControls}</div>}
         <div className="pdf-tool-group">
           <button
             aria-label="Select text"
@@ -337,15 +340,17 @@ export default function PdfReader({
           <Download size={17} />
         </a>
       </div>
-      <div className="pdf-help" role="status">
-        {saving
-          ? 'Saving annotation…'
-          : mode === 'highlight'
-            ? 'Select a passage to highlight.'
-            : mode === 'sticky'
-              ? 'Click anywhere on the page to leave a sticky note.'
-              : 'Select text to highlight it, add a note, or ask about the passage.'}
-      </div>
+      {(saving || mode !== 'select') && (
+        <div className="pdf-help" role="status">
+          {saving
+            ? 'Saving annotation…'
+            : mode === 'highlight'
+              ? 'Select a passage to highlight.'
+              : mode === 'sticky'
+                ? 'Click anywhere on the page to leave a sticky note.'
+                : 'Select text to highlight it, add a note, or ask about the passage.'}
+        </div>
+      )}
       <div className="pdf-body">
         <div
           className="pdf-scroll"
