@@ -14,7 +14,11 @@ The independent screenshot-only baseline critic scored **6.3/10**. Its three hig
 
 ## 01 · Editorial proof of concept
 
-[Discovery and precise brief](01-discover.md). [Empty desk](checkpoints/01-editorial-desk/01-empty-desk.png), [new session](checkpoints/01-editorial-desk/02-new-session.png), [brief](checkpoints/01-editorial-desk/03-session-brief.png), [reading + writing](checkpoints/01-editorial-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/01-editorial-desk/05-source-and-writing.png), [mobile](checkpoints/01-editorial-desk/06-mobile-brief.png). Build and six captures passed. The next step is an independent screenshot-only critique.
+[Discovery and precise brief](01-discover.md). [Empty desk](checkpoints/01-editorial-desk/01-empty-desk.png), [new session](checkpoints/01-editorial-desk/02-new-session.png), [brief](checkpoints/01-editorial-desk/03-session-brief.png), [reading + writing](checkpoints/01-editorial-desk/04-reading-and-writing.png), [PDF + writing](checkpoints/01-editorial-desk/05-source-and-writing.png), [mobile](checkpoints/01-editorial-desk/06-mobile-brief.png). Build and six captures passed. Commit: `043c218` (pushed). The independent review scored **6.4/10**; [exact report and response](02-critique.md).
+
+## 02 · Editorial discipline
+
+[Exact independent review and response](02-critique.md). [Empty desk](checkpoints/02-editorial-discipline/01-empty-desk.png), [new session](checkpoints/02-editorial-discipline/02-new-session.png), [brief](checkpoints/02-editorial-discipline/03-session-brief.png), [reading + writing](checkpoints/02-editorial-discipline/04-reading-and-writing.png), [PDF + writing](checkpoints/02-editorial-discipline/05-source-and-writing.png), [mobile](checkpoints/02-editorial-discipline/06-mobile-brief.png).
 
 ## Ordered design procedures
 

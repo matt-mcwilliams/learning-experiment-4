@@ -30,6 +30,7 @@ const titles: Record<WorkspaceTab, string> = {
   files: 'Files',
   tutor: 'AI chat',
 };
+const initialTabs: WorkspaceTab[] = ['brief', 'read', 'write', 'lab', 'sources', 'tutor'];
 export type DockHandle = { open: (tab: WorkspaceTab) => void };
 const ViewContext = createContext<(tab: WorkspaceTab) => ReactNode>(() => null);
 function View({ params }: IDockviewPanelProps<{ tab: WorkspaceTab }>) {
@@ -96,7 +97,6 @@ export default function DockWorkspace({
   handle.current = { open };
   const defaults = (d: DockviewApi) => {
     d.clear();
-    const initialTabs: WorkspaceTab[] = ['brief', 'read', 'write', 'lab', 'sources', 'tutor'];
     for (const tab of initialTabs.filter((tab) => allowed.includes(tab))) {
       d.addPanel({
         id: tab,
@@ -161,7 +161,7 @@ export default function DockWorkspace({
     }
     for (const p of [...d.panels]) if (!allowed.includes(p.id as WorkspaceTab)) d.removePanel(p);
     for (const tab of allowed)
-      if (!known.current.has(tab) && !d.getPanel(tab))
+      if (initialTabs.includes(tab) && !known.current.has(tab) && !d.getPanel(tab))
         d.addPanel({
           id: tab,
           title: titles[tab],
@@ -170,7 +170,11 @@ export default function DockWorkspace({
           renderer: 'always',
           inactive: true,
           position: d.panels.length
-            ? { referencePanel: d.panels[0].id, direction: 'within' }
+            ? {
+                referencePanel: d.panels[0].id,
+                direction: 'within',
+                index: initialTabs.indexOf(tab),
+              }
             : undefined,
         });
     known.current = new Set(allowed);
@@ -224,7 +228,8 @@ export default function DockWorkspace({
         <div>
           <button
             className="icon-button views-button"
-            aria-label="Open a tab"
+            aria-label="Views: open a tab"
+            aria-expanded={menu}
             title="Open a tab"
             onClick={() => setMenu(!menu)}
           >

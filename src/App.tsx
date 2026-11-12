@@ -44,6 +44,7 @@ export default function App() {
     [detail, setDetail] = useState<SessionDetail | null>(null);
   const [page, setPage] = useState<Page>('workspace'),
     [newSession, setNewSession] = useState(false),
+    [deskQuestion, setDeskQuestion] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [sidebar, setSidebar] = useState(() => window.innerWidth > 760),
@@ -280,48 +281,29 @@ export default function App() {
             <div className="welcome">
               <div className="welcome-overline">YOUR DESK / NO SESSION OPEN</div>
               <h1>Make room for a difficult idea.</h1>
-              <p>
-                Bring a paper, a question, or something you want to make sense of.
-                <br className="desktop-break" /> Keep the source and your own reasoning side by
-                side.
-              </p>
-              <div className="desk-start">
-                <span className="desk-prompt">What would you like to understand?</span>
-                <button className="primary welcome-cta" onClick={() => setNewSession(true)}>
+              <p>Read the source. Follow a question. Work out your answer.</p>
+              <form
+                className="desk-start"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setNewSession(true);
+                }}
+              >
+                <label htmlFor="desk-question">Your question</label>
+                <textarea
+                  id="desk-question"
+                  aria-label="Question to explore"
+                  rows={3}
+                  value={deskQuestion}
+                  onChange={(event) => setDeskQuestion(event.target.value)}
+                  maxLength={6000}
+                  placeholder="What are you trying to make sense of?"
+                />
+                <button className="primary welcome-cta" type="submit">
                   Begin a learning session
                   <ArrowRight size={18} />
                 </button>
-                <span className="desk-shortcut">or press ⌘ / Ctrl K</span>
-              </div>
-              <div className="welcome-grid">
-                {[
-                  {
-                    number: '01',
-                    name: 'Read & question',
-                    body: 'A paper, a theory, a passage worth understanding.',
-                  },
-                  {
-                    number: '02',
-                    name: 'Investigate',
-                    body: 'Make a prediction. Collect evidence. Reconsider.',
-                  },
-                  {
-                    number: '03',
-                    name: 'Build & defend',
-                    body: 'Create something. Explain why it holds up.',
-                  },
-                ].map(({ number, name, body }) => (
-                  <div key={name}>
-                    <span className="desk-index">{number}</span>
-                    <h3>{name}</h3>
-                    <p>{body}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="welcome-foot">
-                <span>ONE QUESTION AT A TIME</span>
-                <p>Your sources, notes, and drafts stay on this device.</p>
-              </div>
+              </form>
             </div>
           ))}
         {page === 'portfolio' && (
@@ -373,6 +355,7 @@ export default function App() {
       {newSession && (
         <NewSession
           onClose={() => setNewSession(false)}
+          initialObjective={detail ? '' : deskQuestion}
           onCreate={create}
           busy={busy}
           connected={!!agent?.connected}
@@ -408,7 +391,9 @@ function NewSession({
   onCreate,
   busy,
   connected,
+  initialObjective,
 }: {
+  initialObjective: string;
   onClose: () => void;
   onCreate: (
     input: { objective: string; mode: string; hours: number },
@@ -418,7 +403,7 @@ function NewSession({
   busy: boolean;
   connected: boolean;
 }) {
-  const [objective, setObjective] = useState(''),
+  const [objective, setObjective] = useState(initialObjective),
     [mode, setMode] = useState('paper'),
     [hours, setHours] = useState(3),
     [file, setFile] = useState<File | null>(null),

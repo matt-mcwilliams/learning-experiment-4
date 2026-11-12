@@ -643,19 +643,25 @@ function ActivityWork({
   };
   return (
     <div className="activity-work">
-      {activity.closedBook && (
-        <div className={'recall-banner ' + (closed ? 'engaged' : '')}>
-          <div>
-            {closed ? <EyeOff size={18} /> : <Eye size={18} />}
-            <p>
-              <strong>{closed ? 'Closed-book workspace' : 'Retrieval practice'}</strong>
-              {closed
-                ? 'Sources, notes and AI are hidden.'
-                : 'Put the source aside; use your own reasoning.'}
-            </p>
+      <div className="work-context">
+        <details className="assignment document-assignment">
+          <summary>
+            Assignment <span>{activity.title}</span>
+          </summary>
+          <Markdown>{material.prompt}</Markdown>
+          <div className="criteria">
+            <h4>Review criteria</h4>
+            {activity.criteria.map((criterion) => (
+              <div key={criterion.name}>
+                <strong>{criterion.name}</strong>
+                <p>{criterion.description}</p>
+              </div>
+            ))}
           </div>
+        </details>
+        {activity.closedBook && (
           <button
-            className="secondary"
+            className="text-button practice-toggle"
             onClick={async () => {
               try {
                 await save();
@@ -667,25 +673,12 @@ function ActivityWork({
               }
             }}
           >
+            {closed ? <EyeOff size={15} /> : <Eye size={15} />}
             {closed ? 'Leave closed-book mode' : 'Begin closed-book attempt'}
           </button>
-        </div>
-      )}
-      <details className="assignment document-assignment">
-        <summary>
-          Assignment <span>{activity.title}</span>
-        </summary>
-        <Markdown>{material.prompt}</Markdown>
-      </details>
-      <details className="criteria">
-        <summary>What a defensible response needs to establish</summary>
-        {activity.criteria.map((c) => (
-          <div key={c.name}>
-            <strong>{c.name}</strong>
-            <p>{c.description}</p>
-          </div>
-        ))}
-      </details>
+        )}
+      </div>
+      {closed && <p className="closed-notice">Closed book · Sources, notes and AI are hidden.</p>}
       <div className="editor-toolbar">
         <div className="segmented">
           <button

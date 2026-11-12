@@ -13,11 +13,13 @@ test('start a document session, autosave mathematical work, critique, defend, co
     page.getByRole('heading', { name: 'Make room for a difficult idea.' }),
   ).toBeVisible();
   await page.screenshot({ path: 'test-results/welcome-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Begin a learning session' }).click();
   await page
-    .getByRole('dialog')
-    .getByRole('textbox', { name: 'YOUR QUESTION' })
+    .getByRole('textbox', { name: 'Question to explore' })
     .fill('Understand sample means and investigate what independence contributes.');
+  await page.getByRole('button', { name: 'Begin a learning session' }).click();
+  await expect(
+    page.getByRole('dialog').getByRole('textbox', { name: 'YOUR QUESTION' }),
+  ).toHaveValue('Understand sample means and investigate what independence contributes.');
   await page
     .getByRole('dialog')
     .locator('input[type=file]')
@@ -298,7 +300,7 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
   await page.getByRole('button', { name: 'Close active tab', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'AI chat', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Open a tab', exact: true }).click();
+  await page.getByRole('button', { name: 'Views: open a tab', exact: true }).click();
   await page.locator('.tab-menu').getByRole('button', { name: 'AI chat', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
   expect(errors).toEqual([]);
