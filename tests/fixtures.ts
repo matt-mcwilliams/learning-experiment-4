@@ -40,7 +40,22 @@ for i in range(40):
 json.dump({'measurements':rows,'summary':{'kind':'synthetic'}},open('result.json','w'))
 print('Collected',len(rows),'independent simulated means')`;
 export const material: Material = {
-  body: 'For independent observations with variance $\\sigma^2$.\n\n$$\n\\mathrm{Var}(\\bar X)=\\sigma^2/n.\n$$\n\nThis depends on independence.',
+  body: `For independent observations with variance $\\sigma^2$.
+
+$$
+\\mathrm{Var}(\\bar X)=\\sigma^2/n.
+$$
+
+This depends on independence.
+
+| Parameter | Meaning |
+| --- | --- |
+| $n$ | Number of independent observations |
+| $\\sigma^2$ | Variance of each observation |
+| $\\bar X$ | Sample mean of the observations |
+| $\\mathrm{Var}(\\bar X)$ | Variance of the sample mean, equal to $\\sigma^2/n$ |
+
+Keep the assumptions explicit when applying the formula.`,
   prompt: 'Derive the variance formula and explain what changes under correlation.',
   references: [],
   hints: ['Expand the variance of a sum.', 'Which covariance terms vanish?'],

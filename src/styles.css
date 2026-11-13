@@ -1066,6 +1066,32 @@ code {
   color: #5c6353;
   margin: 1.6em 0;
 }
+.prose-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1.4em;
+}
+.prose-table:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.prose-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.55;
+}
+.prose-table th,
+.prose-table td {
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-table th {
+  background: var(--sidebar);
+  font-weight: 600;
+}
 .katex-display {
   overflow: auto hidden;
   max-width: 100%;

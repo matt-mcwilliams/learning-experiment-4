@@ -53,6 +53,33 @@ test('start a document session, autosave mathematical work, critique, defend, co
   await page.getByRole('tab', { name: 'Read', exact: true }).click();
   await page.getByRole('button', { name: 'Prepare this activity' }).click();
   await expect(page.locator('.prose .katex-display').first()).toBeVisible();
+  const table = page.locator('.view-read').getByRole('table');
+  await expect(table.getByRole('columnheader')).toHaveText(['Parameter', 'Meaning']);
+  await expect(table.locator('tbody tr')).toHaveCount(4);
+  await expect(table.locator('tbody td:first-child .katex')).toHaveCount(4);
+  await expect(table.getByRole('cell').last()).toContainText('Variance of the sample mean');
+  await expect(table.locator('th').first()).toHaveCSS('border-bottom-style', 'solid');
+  await table.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/markdown-table-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(table).toBeVisible();
+  expect(
+    await page.locator('.view-read .prose').evaluate((el) => el.scrollWidth - el.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  const tableRegion = page
+    .locator('.view-read')
+    .getByRole('region', { name: 'Table', exact: true });
+  expect(await tableRegion.evaluate((el) => el.scrollWidth)).toBeGreaterThan(
+    await tableRegion.evaluate((el) => el.clientWidth),
+  );
+  await tableRegion.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => tableRegion.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
+  await table.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/markdown-table-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
   await page.getByRole('button', { name: 'Work through the question' }).click();
   await page.locator('.document-assignment > summary').click();
   await page.getByRole('button', { name: 'Begin closed-book attempt' }).click();
