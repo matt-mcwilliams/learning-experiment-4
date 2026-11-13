@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import Mathematics from '@tiptap/extension-mathematics';
 import Placeholder from '@tiptap/extension-placeholder';
+import { TableKit } from '@tiptap/extension-table';
 import {
   Bold,
   Italic,
@@ -16,6 +17,10 @@ import {
   Link as LinkIcon,
   Sigma,
   Minus,
+  Table,
+  BetweenHorizontalStart,
+  BetweenVerticalStart,
+  Trash2,
 } from 'lucide-react';
 import { Modal } from './Primitives';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -47,6 +52,7 @@ export default function DocumentEditor({
         link: { openOnClick: false, protocols: ['https', 'http'] },
       }),
       Markdown,
+      TableKit.configure({ table: { renderWrapper: true, cellMinWidth: 120 } }),
       Placeholder.configure({ placeholder: 'Start writing…' }),
       Mathematics.configure({
         katexOptions: { trust: false, throwOnError: false },
@@ -93,6 +99,7 @@ export default function DocumentEditor({
             bullet: e.isActive('bulletList'),
             ordered: e.isActive('orderedList'),
             quote: e.isActive('blockquote'),
+            table: e.isActive('table'),
             heading: e.isActive('heading', { level: 1 })
               ? '1'
               : e.isActive('heading', { level: 2 })
@@ -111,6 +118,7 @@ export default function DocumentEditor({
     bullet: false,
     ordered: false,
     quote: false,
+    table: false,
     heading: '0',
     words: 0,
   };
@@ -200,6 +208,22 @@ export default function DocumentEditor({
           )}
           {button('Insert equation', <Sigma size={17} />, () =>
             setFormula({ latex: '', block: false }),
+          )}
+          {button('Insert table', <Table size={16} />, () =>
+            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+          )}
+          {state.table && (
+            <>
+              {button('Add row below', <BetweenHorizontalStart size={16} />, () =>
+                editor.chain().focus().addRowAfter().run(),
+              )}
+              {button('Add column after', <BetweenVerticalStart size={16} />, () =>
+                editor.chain().focus().addColumnAfter().run(),
+              )}
+              {button('Delete table', <Trash2 size={16} />, () =>
+                editor.chain().focus().deleteTable().run(),
+              )}
+            </>
           )}
           {button('Horizontal rule', <Minus size={16} />, () =>
             editor.chain().focus().setHorizontalRule().run(),

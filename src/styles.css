@@ -3317,6 +3317,37 @@ code {
   background: var(--sidebar);
   padding: 15px;
 }
+.document-paper .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.document-paper .tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+}
+.document-paper .tiptap th,
+.document-paper .tiptap td {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  vertical-align: top;
+  position: relative;
+}
+.document-paper .tiptap th {
+  background: var(--sidebar);
+  font-weight: 600;
+}
+.document-paper .tiptap td > :last-child,
+.document-paper .tiptap th > :last-child {
+  margin-bottom: 0;
+}
+.document-paper .tiptap .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-light);
+  pointer-events: none;
+}
 .document-paper .tiptap p.is-editor-empty:first-child:before {
   content: attr(data-placeholder);
   color: var(--muted);

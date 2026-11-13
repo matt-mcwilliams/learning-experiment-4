@@ -310,6 +310,32 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
     .getByRole('button', { name: 'Insert equation', exact: true })
     .click();
   await expect(editor.locator('.katex')).toBeVisible();
+  await editor.press('Control+End');
+  await editor.press('Enter');
+  await page.getByRole('button', { name: 'Insert table', exact: true }).click();
+  const writtenTable = editor.getByRole('table');
+  await expect(writtenTable.getByRole('row')).toHaveCount(3);
+  await expect(writtenTable.getByRole('columnheader')).toHaveCount(3);
+  await writtenTable.getByRole('columnheader').first().click();
+  await page.keyboard.insertText('Assumption');
+  await page.keyboard.press('Tab');
+  await page.keyboard.insertText('Evidence');
+  await writtenTable.getByRole('cell').first().click();
+  await page.keyboard.insertText('Independent observations');
+  await page.getByRole('button', { name: 'Add row below', exact: true }).click();
+  await expect(writtenTable.getByRole('row')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Add column after', exact: true }).click();
+  await expect(writtenTable.getByRole('columnheader')).toHaveCount(4);
+  const savedTable = await writtenTable.locator('th, td').allTextContents();
+  await expect
+    .poll(async () => {
+      const { sessions } = await (await page.request.get('/api/bootstrap')).json();
+      const detail = await (await page.request.get(`/api/sessions/${sessions[0].id}`)).json();
+      return detail.activities.find((activity: { draft: string }) =>
+        activity.draft.includes('Independent observations'),
+      )?.draft;
+    })
+    .toMatch(/\| Assumption\s*\|\s*\| Evidence/);
   await expect(page.locator('.view-write .save-state').first()).toHaveText(/Saved/);
   await page.getByRole('button', { name: 'Workspace menu', exact: true }).click();
   await page.getByRole('button', { name: 'Split right', exact: true }).click();
@@ -329,6 +355,31 @@ test('native PDF highlights and sticky notes, inline excerpts, rich formatting a
   await expect(
     page.getByRole('textbox', { name: 'Written response' }).locator('.katex'),
   ).toBeVisible();
+  await expect(writtenTable.locator('th, td')).toHaveText(savedTable);
+  await expect(writtenTable.getByRole('row')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Reading view', exact: true }).click();
+  await expect(page.locator('.response-preview').getByRole('table')).toContainText(
+    'Independent observations',
+  );
+  await page.getByRole('button', { name: 'Return to document', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await writtenTable.scrollIntoViewIfNeeded();
+  await expect(writtenTable).toBeVisible();
+  expect(await editor.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  expect(
+    await writtenTable
+      .getByRole('columnheader')
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeGreaterThanOrEqual(120);
+  await page.screenshot({ path: 'test-results/writing-table-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole('button', { name: 'Format', exact: true }).click();
+  await writtenTable.getByRole('cell').first().click();
+  await page.getByRole('button', { name: 'Delete table', exact: true }).click();
+  await expect(writtenTable).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(writtenTable.locator('th, td')).toHaveText(savedTable);
   await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Question for thinking partner' })).toBeVisible();
   await page
