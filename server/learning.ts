@@ -32,7 +32,9 @@ export class LearningService {
     activityId: string | null = null,
     submissionId: string | null = null,
     userText = '',
-  ) {
+    chatId: string | null = null,
+    retry = false,
+  ): Job {
     const detail = this.store.detail(sessionId);
     if (kind === 'plan' && detail.plan) throw new AppError('This session already has a plan.');
     if (['material', 'assess', 'defense', 'excerpts'].includes(kind) && !activityId)
@@ -65,7 +67,36 @@ export class LearningService {
       !detail.activities.find((a) => a.id === activityId)?.material?.references.length
     )
       throw new AppError('This activity has no source reading assignments yet.');
-    const job = this.store.createJob(sessionId, kind, activityId, submissionId, userText);
+    const job = this.store.transaction(() => {
+      const chat =
+        kind === 'tutor'
+          ? chatId
+            ? this.store.chat(sessionId, chatId)
+            : (detail.chats.at(-1) ?? this.store.createChat(sessionId))
+          : null;
+      if (kind === 'tutor' && !userText.trim()) throw new AppError('Write a question first.');
+      const job = this.store.createJob(sessionId, kind, activityId, submissionId, userText);
+      if (chat) {
+        const firstMessage = !detail.messages.some((m) => m.chatId === chat.id);
+        if (!retry)
+          this.store.put('messages', {
+            id: id(),
+            sessionId,
+            chatId: chat.id,
+            activityId,
+            role: 'user',
+            text: userText,
+            createdAt: now(),
+          });
+        this.store.put('chats', {
+          ...chat,
+          title: firstMessage ? this.store.chatTitle(userText) : chat.title,
+          updatedAt: now(),
+        });
+        return this.store.updateJob(job.id, { chatId: chat.id });
+      }
+      return job;
+    });
     const controller = new AbortController();
     this.controllers.set(job.id, controller);
     void this.perform(job, userText, controller.signal);
@@ -84,7 +115,13 @@ export class LearningService {
       const previous =
         job.kind === 'tutor'
           ? detail.jobs
-              .filter((j) => j.kind === 'tutor' && j.status === 'succeeded' && j.threadId)
+              .filter(
+                (j) =>
+                  j.kind === 'tutor' &&
+                  j.chatId === job.chatId &&
+                  j.status === 'succeeded' &&
+                  j.threadId,
+              )
               .at(-1)?.threadId
           : null;
       const result = await this.agent.run({
@@ -95,7 +132,16 @@ export class LearningService {
                 detail,
                 detail.activities.find((a) => a.id === job.activityId)!.material!,
               )
-            : taskPrompt(job.kind, detail, profile, job.activityId, job.submissionId, userText),
+            : taskPrompt(
+                job.kind,
+                job.kind === 'tutor'
+                  ? { ...detail, messages: detail.messages.filter((m) => m.chatId === job.chatId) }
+                  : detail,
+                profile,
+                job.activityId,
+                job.submissionId,
+                userText,
+              ),
         schema: outputSchemas[job.kind],
         model: profile.model,
         webResearch: job.kind === 'excerpts' ? false : profile.webResearch,
@@ -209,9 +255,14 @@ export class LearningService {
             id: id(),
             sessionId: job.sessionId,
             activityId: job.activityId,
+            chatId: job.chatId!,
             role: 'assistant',
             text: response.answer,
             createdAt: now(),
+          });
+          this.store.put('chats', {
+            ...this.store.chat(job.sessionId, job.chatId!),
+            updatedAt: now(),
           });
         }
         // These operations have their own transactions, and run immediately below.

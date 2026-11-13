@@ -12,6 +12,7 @@ import type {
   Job,
   JobKind,
   Message,
+  Chat,
   Run,
   Artifact,
   Assessment,
@@ -46,7 +47,8 @@ export class Store {
       CREATE TABLE IF NOT EXISTS records (collection TEXT NOT NULL, id TEXT NOT NULL, session_id TEXT, payload TEXT NOT NULL CHECK(json_valid(payload)), PRIMARY KEY(collection,id));
       CREATE INDEX IF NOT EXISTS records_session ON records(collection,session_id);
       CREATE UNIQUE INDEX IF NOT EXISTS one_active_session ON records(collection) WHERE collection='sessions' AND json_extract(payload,'$.status')='active';
-      PRAGMA user_version=1;`);
+      `);
+    this.migrateChats();
     this.transaction(() => {
       for (const j of this.list<Job>('jobs').filter((j) => j.status === 'running')) {
         this.put('jobs', {
@@ -58,6 +60,45 @@ export class Store {
         });
       }
     });
+  }
+  private migrateChats() {
+    const version = this.db.prepare('PRAGMA user_version').get() as { user_version: number };
+    if (version.user_version >= 2) return;
+    this.transaction(() => {
+      for (const session of this.list<Session>('sessions')) {
+        const messages = this.list<Message>('messages', session.id);
+        const jobs = this.list<Job>('jobs', session.id).filter((j) => j.kind === 'tutor');
+        if (!messages.length && !jobs.length) continue;
+        const chat = this.createChat(session.id);
+        this.put('chats', {
+          ...chat,
+          title: this.chatTitle(messages.find((m) => m.role === 'user')?.text ?? 'Previous chat'),
+          createdAt: messages[0]?.createdAt ?? jobs[0].createdAt,
+          updatedAt: messages.at(-1)?.createdAt ?? jobs.at(-1)!.updatedAt,
+        });
+        for (const message of messages) this.put('messages', { ...message, chatId: chat.id });
+        for (const job of jobs) this.put('jobs', { ...job, chatId: chat.id });
+      }
+      this.db.exec('PRAGMA user_version=2');
+    });
+  }
+  chatTitle(text: string) {
+    return text.trim().replace(/\s+/g, ' ').slice(0, 80) || 'New chat';
+  }
+  createChat(sessionId: string): Chat {
+    this.session(sessionId);
+    return this.put('chats', {
+      id: id(),
+      sessionId,
+      title: 'New chat',
+      createdAt: now(),
+      updatedAt: now(),
+    });
+  }
+  chat(sessionId: string, chatId: string): Chat {
+    const chat = this.get<Chat>('chats', chatId);
+    if (chat.sessionId !== sessionId) throw new AppError('Chat not found', 404);
+    return chat;
   }
   close() {
     this.db.close();
@@ -209,6 +250,7 @@ export class Store {
       sources: this.list<Source>('sources', sessionId),
       submissions: this.list<Submission>('submissions', sessionId),
       annotations: this.list<Annotation & { sessionId: string }>('annotations', sessionId),
+      chats: this.list<Chat>('chats', sessionId),
       messages: this.list<Message>('messages', sessionId),
       jobs: this.list<Job>('jobs', sessionId),
       runs: this.list<Run>('runs', sessionId),

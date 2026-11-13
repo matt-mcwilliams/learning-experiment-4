@@ -74,6 +74,8 @@ The adapter checks for a ChatGPT account **before starting any inference turn** 
 
 The workspace uses draggable tabs across the top, including **AI chat**. Drag a tab to an edge to split the workspace, or open the **Workspace** menu for **Split right** / **Split below**. Resize panes by dragging their dividers, close/reopen tabs, or reset the layout. Your layout is saved per session and restored on restart. On narrow screens, use the current-view selector. Use the **Workspace** menu to open the notebook, review, files, or another view. Splitting collapses navigation to give the documents more space; the sidebar toggle reopens it. In Work, **Format** opens rich-text controls and **Assignment** contains criteria and closed-book practice.
 
+In **AI chat**, **New chat** starts a separate conversation while keeping the current session and activity in context. **Toggle chat history** shows or hides a sidebar of saved chats in this session; select one to continue it. Chats are titled from their first question. Messages survive restarts, and this browser remembers the selected chat and history visibility. Existing conversations are retained in history.
+
 PDFs scroll continuously between pages. The toolbar tracks your current page; page numbers and arrows jump within the document. Your reading position and zoom are remembered in this browser. Only nearby pages are painted to limit memory use. Scanned papers use locally served image decoders, so the page image and its selectable text layer both render.
 
 There are no streaks, badges, numerical mastery scores, or mandatory curriculum gates. Knowledge judgments can be challenged. Saved recommendations stay available even when you choose something else.

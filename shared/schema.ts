@@ -215,6 +215,13 @@ export type Submission = {
 };
 export type JobKind =
   'plan' | 'material' | 'assess' | 'tutor' | 'complete' | 'defense' | 'excerpts';
+export type Chat = {
+  id: string;
+  sessionId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
 export type Job = {
   id: string;
   sessionId: string;
@@ -225,6 +232,7 @@ export type Job = {
   phase: string;
   error: string | null;
   requestText: string;
+  chatId?: string | null;
   threadId: string | null;
   turnId: string | null;
   createdAt: string;
@@ -232,6 +240,7 @@ export type Job = {
 };
 export type Message = {
   id: string;
+  chatId?: string;
   sessionId: string;
   activityId: string | null;
   role: 'user' | 'assistant';
@@ -287,6 +296,7 @@ export type SessionDetail = Session & {
   sources: Source[];
   submissions: Submission[];
   annotations: Annotation[];
+  chats: Chat[];
   messages: Message[];
   jobs: Job[];
   runs: Run[];

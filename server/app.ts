@@ -328,6 +328,7 @@ export async function createApp(options: {
       .run('annotations', annotationId);
     return { deleted: true };
   });
+  app.post('/api/sessions/:sid/chats', async (request) => store.createChat(params(request).sid));
   app.post('/api/sessions/:sid/tasks', async (request) => {
     const sid = params(request).sid;
     const body = z
@@ -336,6 +337,7 @@ export async function createApp(options: {
         activityId: z.string().nullable().optional(),
         submissionId: z.string().nullable().optional(),
         text: z.string().max(40000).default(''),
+        chatId: z.string().nullable().optional(),
       })
       .parse(request.body);
     const job = learning.start(
@@ -344,16 +346,8 @@ export async function createApp(options: {
       body.activityId ?? null,
       body.submissionId ?? null,
       body.text,
+      body.chatId ?? null,
     );
-    if (body.kind === 'tutor')
-      store.put('messages', {
-        id: id(),
-        sessionId: sid,
-        activityId: body.activityId ?? null,
-        role: 'user',
-        text: body.text,
-        createdAt: now(),
-      });
     return job;
   });
   app.post('/api/jobs/:jid/cancel', async (request) =>
@@ -366,7 +360,15 @@ export async function createApp(options: {
       z.object({ text: z.string().max(40000).optional() }).parse(request.body ?? {}).text ??
       job.requestText ??
       '';
-    return learning.start(job.sessionId, job.kind, job.activityId, job.submissionId, userText);
+    return learning.start(
+      job.sessionId,
+      job.kind,
+      job.activityId,
+      job.submissionId,
+      userText,
+      job.chatId ?? null,
+      true,
+    );
   });
   app.post('/api/sessions/:sid/submissions', async (request) => {
     const sid = params(request).sid;

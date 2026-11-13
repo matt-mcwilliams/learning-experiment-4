@@ -447,3 +447,78 @@ test('scanned PDF images paint, pages scroll continuously, and annotations retai
     ),
   ).toEqual([]);
 });
+
+test('new chats keep separate saved histories with a toggleable sidebar on desktop and mobile', async ({
+  page,
+}) => {
+  await page.goto('/');
+  if (await page.getByRole('dialog').isVisible())
+    await page.getByRole('button', { name: 'Decide later' }).click();
+  await page.getByRole('button', { name: /New session/ }).click();
+  const form = (await page.getByRole('dialog').isVisible())
+    ? page.getByRole('dialog')
+    : page.locator('.inline-session');
+  await form
+    .getByRole('textbox', { name: 'Your question', exact: true })
+    .fill('Explore independent conversations about sample means.');
+  await page.getByRole('button', { name: 'Create session', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'What to establish', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'AI chat', exact: true }).click();
+  const history = page.getByRole('navigation', { name: 'Chat history', exact: true });
+  const toggle = page.getByRole('button', { name: 'Toggle chat history' });
+  const question = page.getByRole('textbox', { name: 'Question for thinking partner' });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(history).toHaveCount(0);
+  await question.fill('First conversation about independence');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(page.locator('.message.assistant')).toHaveCount(1);
+  await question.fill('Keep this unsent draft');
+  await page.getByRole('button', { name: 'New chat', exact: true }).click();
+  await expect(page.locator('.message')).toHaveCount(0);
+  await expect(question).toHaveValue('');
+  await question.fill('Second conversation about covariance');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(page.locator('.message.assistant')).toHaveCount(1);
+  await expect(page.locator('.conversation')).not.toContainText('First conversation');
+  await toggle.click();
+  await expect(history.getByRole('button')).toHaveCount(2);
+  await history.getByRole('button', { name: /First conversation about independence/ }).click();
+  await expect(page.locator('.conversation')).toContainText(
+    'First conversation about independence',
+  );
+  await expect(page.locator('.conversation')).not.toContainText('Second conversation');
+  await expect(question).toHaveValue('Keep this unsent draft');
+  await question.fill('');
+  await page.reload();
+  await expect(history).toBeVisible();
+  await expect(page.locator('.conversation')).toContainText(
+    'First conversation about independence',
+  );
+  await history.getByRole('button', { name: /Second conversation about covariance/ }).click();
+  await expect(page.locator('.conversation')).toContainText('Second conversation about covariance');
+  await toggle.click();
+  await page.reload();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(history).toHaveCount(0);
+  await expect(page.locator('.message.assistant')).toContainText('covariance terms');
+  await toggle.click();
+  await page.screenshot({ path: 'test-results/chat-desktop.png', fullPage: true });
+  await toggle.click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (!(await page.locator('.app').evaluate((node) => node.classList.contains('sidebar-hidden'))))
+    await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
+  await toggle.click();
+  await expect(history).toBeVisible();
+  await history.getByRole('button', { name: /First conversation about independence/ }).click();
+  await toggle.click();
+  await expect(page.locator('.message.user')).toContainText(
+    'First conversation about independence',
+  );
+  await expect(question).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New chat', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const a11y = await new AxeBuilder({ page }).include('.tutor-panel').analyze();
+  expect(a11y.violations).toEqual([]);
+  await page.screenshot({ path: 'test-results/chat-mobile.png', fullPage: true });
+});

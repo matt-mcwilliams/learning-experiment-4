@@ -10,6 +10,12 @@ Verification separates software correctness, actual model integration, and educa
 
 `npm run test:live` uses the actual local Codex adapter and ChatGPT sign-in. It consumes subscription usage and contacts a legitimate public paper source. Generated private evidence is written to a temporary directory, not the user's learning history or this repository.
 
+## Saved AI chats
+
+Chat tests cover separate transcripts, chat ownership, native-thread selection, retries without duplicated questions, opening a new chat during a pending reply, and one-time migration of existing messages and job diagnostics. Chromium checks cover New chat, history toggling, switching chats, temporary per-chat drafts, selected-chat and visibility recovery after reload, mobile layout, and accessibility.
+
+A targeted three-turn check with the real ChatGPT-authenticated Codex adapter confirmed that a new chat used a distinct native thread and did not receive a mnemonic from the first chat. Reopening the first chat resumed its original thread and recovered that mnemonic. The check used a disposable session with web research disabled; evidence remains in private temporary storage.
+
 ## Live scenario exercised during development
 
 The actual 23-page PDF of Carl Doersch's [Tutorial on Variational Autoencoders](https://arxiv.org/abs/1606.05908) was retrieved from arXiv and read through page-indexed source tools. The live run exercised:

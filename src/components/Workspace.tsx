@@ -41,6 +41,7 @@ import { Markdown, Empty, Loading, Modal, date } from './Primitives';
 import { useDraft } from './useDraft';
 import DockWorkspace, { type WorkspaceTab, type DockHandle } from './DockWorkspace';
 import ReadingExcerpts from './ReadingExcerpts';
+import TutorChat from './TutorChat';
 const Editor = lazy(() => import('./Editor'));
 const DocumentEditor = lazy(() => import('./DocumentEditor'));
 const Sources = lazy(() => import('./Sources'));
@@ -348,80 +349,18 @@ export default function Workspace({
       {tab === 'notes' && !closed && <Notebook key={detail.id} detail={detail} report={report} />}
       {tab === 'files' && !closed && <Files detail={detail} onUpdate={reload} report={report} />}
       {tab === 'tutor' && !closed && (
-        <aside className="tutor-panel">
-          <header>
-            <div>
-              <Sparkles size={17} />
-              <h3>Thinking partner</h3>
-            </div>
-          </header>
-          <div className="tutor-context">
-            <span className="eyebrow">IN CONTEXT</span>
-            <p>{activity?.title || detail.title}</p>
-          </div>
-          <div className="conversation" aria-live="polite">
-            {!detail.messages.length && (
-              <div className="tutor-empty">
-                <h3>Keep the question open.</h3>
-                <p>Ask about a passage, test an argument, or request just enough of a hint.</p>
-                <button
-                  onClick={() =>
-                    setAsk(
-                      'Give me one useful hint for the current activity, without revealing its solution.',
-                    )
-                  }
-                >
-                  A hint, not the solution
-                  <ArrowUpRight size={14} />
-                </button>
-                <button onClick={() => setAsk('What assumption here is easiest to overlook?')}>
-                  Find a hidden assumption
-                  <ArrowUpRight size={14} />
-                </button>
-              </div>
-            )}
-            {detail.messages.map((m) => (
-              <div key={m.id} className={'message ' + m.role}>
-                <span className="eyebrow">{m.role === 'user' ? 'YOU' : 'MARGIN · AI'}</span>
-                <Markdown>{m.text}</Markdown>
-              </div>
-            ))}
-            {activeJob?.kind === 'tutor' && <Loading text="Considering your question…" />}
-          </div>
-          <form
-            className="tutor-input"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!ask.trim()) return;
-              const text = ask;
-              setAsk('');
-              await task('tutor', undefined, text);
-            }}
-          >
-            <textarea
-              aria-label="Question for thinking partner"
-              rows={3}
-              value={ask}
-              onChange={(e) => setAsk(e.target.value)}
-              placeholder="Work through an idea…"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  e.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
-            <div>
-              <span>⌘ / Ctrl + Enter</span>
-              <button disabled={locked || !ask.trim()} aria-label="Send question">
-                <ArrowRight size={18} />
-              </button>
-            </div>
-          </form>
-          <p className="tutor-disclosure">
-            AI can be wrong. Sources and your reasoning come first.
-          </p>
-        </aside>
+        <TutorChat
+          key={detail.id}
+          detail={detail}
+          ask={ask}
+          setAsk={setAsk}
+          busy={locked}
+          onUpdate={async () => {
+            await reload();
+            await refresh();
+          }}
+          report={report}
+        />
       )}
     </Suspense>
   );

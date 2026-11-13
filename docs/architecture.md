@@ -13,7 +13,7 @@ Margin is a single-user browser workspace backed by one local Node process. Reac
 
 The [official documentation](https://developers.openai.com/codex/app-server) describes the local, newline-delimited JSON-RPC protocol for threads, turns, streaming events, authentication, cancellation, and client-provided dynamic tools. This gives the product a real agent runtime while retaining control over state and interface. It also supports the user's existing ChatGPT Codex authentication without adding API billing. The app uses native Codex authentication rather than implementing its own OAuth token manager.
 
-The integration was checked against Codex 0.167.1's generated protocol types as well as current official documentation. `dynamicTools` is experimental and explicitly negotiated during initialization. Each content task has a separate thread. Contextual tutoring resumes its previous successful thread; structured session context accompanies every task so a lost transcript does not erase the learning state. No multi-agent orchestrator is needed to obtain distinct reviewing perspectives; the defense contract requires independently grounded perspectives in one bounded task.
+The integration was checked against Codex 0.167.1's generated protocol types as well as current official documentation. `dynamicTools` is experimental and explicitly negotiated during initialization. Each content task has a separate thread. Each saved tutor chat resumes its own previous successful thread; structured session context accompanies every task so a lost transcript does not erase the learning state. No multi-agent orchestrator is needed to obtain distinct reviewing perspectives; the defense contract requires independently grounded perspectives in one bounded task.
 
 `server/codex.ts` owns JSON-RPC correlation, timeouts, failure propagation, tool handling, account checks, and cleanup. An isolated Codex home prevents inheriting user plugins, hooks, MCPs, skills, providers, or permissive execution settings. The model has only read-only source tools and optional built-in web search. Native execution and filesystem requests are denied.
 
@@ -29,7 +29,7 @@ Imported documents remain untrusted data. Structured references carry source IDs
 
 ## Persistent model
 
-`server/store.ts` uses SQLite WAL transactions. A versioned record store holds typed records in separate indexed collections; it does not serialize an entire application's state into one chat blob. `shared/schema.ts` defines runtime contracts and frontend types. `PRAGMA user_version` is the migration version (currently 1). Add an explicit migration before changing stored contracts incompatibly; optional fields can be introduced without rewriting existing records.
+`server/store.ts` uses SQLite WAL transactions. A versioned record store holds typed records in separate indexed collections; it does not serialize an entire application's state into one chat blob. `shared/schema.ts` defines runtime contracts and frontend types. `PRAGMA user_version` is the migration version (currently 2). Add an explicit migration before changing stored contracts incompatibly; optional fields can be introduced without rewriting existing records.
 
 Collections:
 
@@ -43,10 +43,13 @@ Collections:
 | `runs`            | Actual execution, code, seed, settings, hypothesis, prediction, result, logs, runtime                         |
 | `artifacts`       | Original attached or computed files, content hash, MIME metadata and size                                     |
 | `jobs`            | Kind, status, user request, phase, failure, timestamps, native thread/turn IDs                                |
-| `messages`        | Contextual learner/instructor exchanges                                                                       |
+| `chats`           | Session-owned conversation title and timestamps                                                               |
+| `messages`        | Chat-owned contextual learner/instructor exchanges                                                            |
 | `knowledge`       | Concept-level evidence linked to submissions, uncertainty, confidence, learner challenges                     |
 | `recommendations` | Six per completion, rationale, category, objective, chosen follow-up                                          |
 | `settings`        | Learning interests, recommendation goals, model and research preference                                       |
+
+Migration 2 groups each existing session transcript and tutor jobs into one saved chat without changing message contents or native thread IDs. New tutor jobs and messages carry a chat ID; chat ownership is checked before a task starts. The question and job are saved atomically before inference. Tutor prompts include only that chat’s transcript, alongside the shared structured learning context. Retries retain their original chat and do not duplicate the learner’s message. New chats can be opened while a reply runs; the reply remains attached to its original chat.
 
 A partial unique index enforces one active session. Session creation atomically pauses the previous session. Draft saves use optimistic revisions; simultaneous stale edits receive a conflict. Session planning and completion use cross-record transactions. Interrupted tasks become retryable failures on startup rather than leaving an indefinite spinner. Blob names are hashes, never user-provided filesystem paths.
 
